@@ -291,58 +291,8 @@ class _ModelFallbackWrapper(GenerationMixin):
         return self._default._reorder_cache(past_key_values, beam_idx)
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--model_type",
-        default=None,
-        type=str,
-        required=True,
-        help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()),
-    )
-    parser.add_argument(
-        "--model_name_or_path",
-        default=None,
-        type=str,
-        required=True,
-        help="Path to pre-trained model or shortcut name selected in the list: " + ", ".join(MODEL_CLASSES.keys()),
-    )
-
-    parser.add_argument("--prompt", type=str, default="")
-    parser.add_argument("--length", type=int, default=20)
-    parser.add_argument("--stop_token", type=str, default=None, help="Token at which text generation is stopped")
-
-    parser.add_argument(
-        "--temperature",
-        type=float,
-        default=1.0,
-        help="temperature of 1.0 has no effect, lower tend toward greedy sampling",
-    )
-    parser.add_argument(
-        "--repetition_penalty", type=float, default=1.0, help="primarily useful for CTRL model; in that case, use 1.2"
-    )
-    parser.add_argument("--k", type=int, default=0)
-    parser.add_argument("--p", type=float, default=0.9)
-
-    parser.add_argument("--prefix", type=str, default="", help="Text added prior to input.")
-    parser.add_argument("--padding_text", type=str, default="", help="Deprecated, the use of `--prefix` is preferred.")
-    parser.add_argument("--xlm_language", type=str, default="", help="Optional language when used with the XLM model.")
-
-    parser.add_argument("--seed", type=int, default=42, help="random seed for initialization")
-    parser.add_argument(
-        "--use_cpu",
-        action="store_true",
-        help="Whether or not to use cpu. If set to False, " "we will use gpu/npu or mps device if available",
-    )
-    parser.add_argument("--num_return_sequences", type=int, default=1, help="The number of samples to generate.")
-    parser.add_argument(
-        "--fp16",
-        action="store_true",
-        help="Whether to use 16-bit (mixed) precision (through NVIDIA apex) instead of 32-bit",
-    )
-    parser.add_argument("--jit", action="store_true", help="Whether or not to use jit trace to accelerate inference")
-    args = parser.parse_args()
-
+def run_generation(args):
+    
     # Initialize the distributed state.
     distributed_state = PartialState(cpu=args.use_cpu)
 
@@ -361,8 +311,8 @@ def main():
     tokenizer = tokenizer_class.from_pretrained(args.model_name_or_path)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    model = model_class.from_pretrained(args.model_name_or_path)
-
+    model = model_class.from_pretrained(args.model_name_or_path, attn_implementation="sdpa")
+    model = torch.compile(model)
     # Set the model to the right device
     model.to(distributed_state.device)
 
@@ -417,17 +367,18 @@ def main():
 
     attention_mask = torch.ones_like(input_ids)
 
-    output_sequences = model.generate(
-        input_ids=input_ids,
-        attention_mask=attention_mask,
-        max_length=args.length + len(encoded_prompt[0]),
-        temperature=args.temperature,
-        top_k=args.k,
-        top_p=args.p,
-        repetition_penalty=args.repetition_penalty,
-        do_sample=True,
-        num_return_sequences=args.num_return_sequences,
-    )
+    with torch.inference_mode():
+        output_sequences = model.generate(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            max_length=args.length + len(encoded_prompt[0]),
+            temperature=args.temperature,
+            top_k=args.k,
+            top_p=args.p,
+            repetition_penalty=args.repetition_penalty,
+            do_sample=True,
+            num_return_sequences=args.num_return_sequences,
+        )
 
     # Remove the batch dimension when returning multiple sequences
     if len(output_sequences.shape) > 2:
@@ -456,5 +407,3 @@ def main():
     return generated_sequences
 
 
-if __name__ == "__main__":
-    main()

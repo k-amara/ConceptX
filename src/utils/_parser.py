@@ -1,0 +1,92 @@
+import argparse
+import random
+
+import numpy as np
+import torch
+from transformers import set_seed
+
+# Define the path to the data, model, logs, results, and colors
+#
+
+CKPT_ROOT = "/cluster/home/kamara/biashap/"
+STORAGE = "/cluster/work/ilic/kamara/biashap/"
+#CKPT_ROOT = "/Users/kenzaamara/GithubProjects/biashap/"
+#STORAGE = "/Users/kenzaamara/GithubProjects/biashap/"
+DATA_DIR = CKPT_ROOT + "data/"
+MODEL_DIR = STORAGE + "models/"
+HIDDEN_STATE_DIR = STORAGE + "hidden_states/"
+FIG_DIR = CKPT_ROOT + "figures/"
+RESULT_DIR = STORAGE + "results/"
+
+
+
+def fix_random_seed(seed):
+    np.random.seed(seed)
+    random.seed(seed)
+    set_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+
+
+
+def arg_parse():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--model_type",
+        default=None,
+        type=str,
+        required=True,
+        help="Model type selected in the list of model classes",
+    )
+    parser.add_argument(
+        "--model_name_or_path",
+        default=None,
+        type=str,
+        required=True,
+        help="Path to pre-trained model or shortcut name selected in the list of model classes",
+    )
+
+    parser.add_argument("--prompt", type=str, default="")
+    parser.add_argument("--length", type=int, default=20)
+    parser.add_argument("--stop_token", type=str, default=None, help="Token at which text generation is stopped")
+
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=1.0,
+        help="temperature of 1.0 has no effect, lower tend toward greedy sampling",
+    )
+    parser.add_argument(
+        "--repetition_penalty", type=float, default=1.0, help="primarily useful for CTRL model; in that case, use 1.2"
+    )
+    parser.add_argument("--k", type=int, default=0)
+    parser.add_argument("--p", type=float, default=0.9)
+
+    parser.add_argument("--prefix", type=str, default="", help="Text added prior to input.")
+    parser.add_argument("--padding_text", type=str, default="", help="Deprecated, the use of `--prefix` is preferred.")
+    parser.add_argument("--xlm_language", type=str, default="", help="Optional language when used with the XLM model.")
+
+    parser.add_argument("--seed", type=int, default=42, help="random seed for initialization")
+    parser.add_argument(
+        "--use_cpu",
+        action="store_true",
+        help="Whether or not to use cpu. If set to False, " "we will use gpu/npu or mps device if available",
+    )
+    parser.add_argument("--num_return_sequences", type=int, default=1, help="The number of samples to generate.")
+    parser.add_argument(
+        "--fp16",
+        action="store_true",
+        help="Whether to use 16-bit (mixed) precision (through NVIDIA apex) instead of 32-bit",
+    )
+    parser.add_argument("--jit", action="store_true", help="Whether or not to use jit trace to accelerate inference")
+    
+    args, unknown = parser.parse_known_args()
+    return parser, args
+
+
+def create_args_group(parser, args):
+    arg_groups = {}
+    for group in parser._action_groups:
+        group_dict = {a.dest: getattr(args, a.dest, None) for a in group._group_actions}
+        arg_groups[group.title] = group_dict
+    return arg_groups

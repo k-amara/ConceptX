@@ -31,6 +31,10 @@ def fix_random_seed(seed):
 
 def arg_parse():
     parser = argparse.ArgumentParser()
+    
+    
+    ### Language Model Parameters
+    
     parser.add_argument(
         "--model_type",
         default=None,
@@ -45,8 +49,6 @@ def arg_parse():
         required=True,
         help="Path to pre-trained model or shortcut name selected in the list of model classes",
     )
-
-    parser.add_argument("--prompt", type=str, default="")
     parser.add_argument("--length", type=int, default=20)
     parser.add_argument("--stop_token", type=str, default=None, help="Token at which text generation is stopped")
 
@@ -79,6 +81,19 @@ def arg_parse():
         help="Whether to use 16-bit (mixed) precision (through NVIDIA apex) instead of 32-bit",
     )
     parser.add_argument("--jit", action="store_true", help="Whether or not to use jit trace to accelerate inference")
+    
+    
+    
+    ### Explainability Method Parameters
+    
+    parser.add_argument(
+        "--explainer",
+        default=None,
+        type=str,
+        required=True,
+        help="Explainer type selected in the list of explainer classes (random, tokenshap, conceptshap)",
+    )
+    
     
     args, unknown = parser.parse_known_args()
     return parser, args

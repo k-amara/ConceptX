@@ -1,176 +1,57 @@
 #from token_shap import *
-from itertools import combinations
-from transformers import AutoTokenizer, AutoModelForCausalLM
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import re
 import numpy as np
 import random
-import colorsys
-import os
+from typing import Optional
 
+import spacy
 import requests
-import json
-import base64
-from typing import Optional, Callable, Any, List, Dict, Union, Tuple
-from os import getenv
 
-def default_output_handler(message: str) -> None:
-    """Prints messages without newline."""
-    print(message, end='', flush=True)
+from shap_utils import get_text_before_last_underscore, Splitter, TextVectorizer, HuggingFaceEmbeddings
 
-def encode_image_to_base64(image_path: str) -> str:
-    """
-    Converts an image file to a base64-encoded string.
+
+nlp = spacy.load("en_core_web_sm")
+
+def extract_meaningful_concepts(text):
+    doc = nlp(text)
+    return [token.text.lower() for token in doc 
+            if token.pos_ in {"NOUN", "PROPN", "VERB"} and not token.is_stop]
     
-    Args:
-    image_path (str): Path to the image file.
-
-    Returns:
-    str: Base64-encoded string of the image.
-    """
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode('utf-8')
-
-
-def get_text_before_last_underscore(token):
-    return token.rsplit('_', 1)[0]
-
-class TextVectorizer:
-    def vectorize(self, texts: List[str]) -> np.ndarray:
-        """
-        Convert a list of text strings into vector representations.
-        
-        Args:
-            texts: List of text strings to vectorize
-            
-        Returns:
-            numpy array of vectors
-        """
-        raise NotImplementedError
-        
-    def calculate_similarity(self, base_vector: np.ndarray, comparison_vectors: np.ndarray) -> np.ndarray:
-        """
-        Calculate similarity between vectors
-        
-        Args:
-            base_vector: Vector to compare against
-            comparison_vectors: List of vectors to compare with base_vector
-            
-        Returns:
-            numpy array of similarity scores
-        """
-        raise NotImplementedError
-
-class HuggingFaceEmbeddings(TextVectorizer):
-    def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2", device: str = "cpu"):
-        """
-        Initialize HuggingFace sentence embeddings vectorizer - much simpler implementation
-        
-        Args:
-            model_name: Name of the sentence-transformer model from HuggingFace
-            device: Device to run model on ('cpu' or 'cuda', etc.)
-        """
-        self.model_name = model_name
-        self.device = device
-        self.model = None
-        self._initialize_model()
-        
-    def _initialize_model(self):
-        try:
-            from sentence_transformers import SentenceTransformer
-            # Load model - SentenceTransformer handles all the complexity
-            self.model = SentenceTransformer(self.model_name, device=self.device)
-        except ImportError:
-            raise ImportError("sentence-transformers package not installed. Please install with 'pip install sentence-transformers'")
-            
-    def vectorize(self, texts: List[str]) -> np.ndarray:
-        """Get embeddings using sentence-transformers - much simpler"""
-        if not self.model:
-            self._initialize_model()
-            
-        # SentenceTransformer handles batching, padding, etc. automatically
-        embeddings = self.model.encode(texts, convert_to_numpy=True)
-        return embeddings
     
-    def calculate_similarity(self, base_vector: np.ndarray, comparison_vectors: np.ndarray) -> np.ndarray:
-        """Calculate cosine similarity between vectors"""
-        # Sentence-transformers models already return normalized vectors
-        return np.dot(comparison_vectors, base_vector)
+def get_conceptnet_edges(word):
+    url = f"http://api.conceptnet.io/c/en/{word}"
+    response = requests.get(url).json()
+    return len(response.get('edges', []))  # Count relations
 
 
-# Model abstraction
-class Model:
-    def generate(self, prompt):
-        raise NotImplementedError
+def select_richest_concepts(text, top_n=3):
+    concepts = extract_meaningful_concepts(text)
+    if (top_n is None) or (top_n > len(concepts)):
+        top_n = len(concepts)
+    concept_scores = {word: get_conceptnet_edges(word) for word in concepts}
+    sorted_list = sorted(concept_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
+    top_concepts, top_scores = [item[0] for item in sorted_list], [item[1] for item in sorted_list]
+    return top_concepts, top_scores
+# Output: [('processing', 120), ('Transformer', 80), ('revolutionized', 50)]
 
 
-class LocalModel(Model):
-    def __init__(self, model_name_or_path, max_new_tokens=100, temperature=0.5):
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
-        self.model = AutoModelForCausalLM.from_pretrained(model_name_or_path)
-        self.max_new_tokens = max_new_tokens
-        self.temperature = temperature
-
-    def generate(self, prompt):
-        inputs = self.tokenizer(prompt, return_tensors='pt')
-        input_ids = inputs['input_ids']
-        input_length = input_ids.shape[1]
-
-        outputs = self.model.generate(
-            **inputs,
-            max_new_tokens=self.max_new_tokens,
-            temperature=self.temperature,
-            pad_token_id=self.tokenizer.eos_token_id
-        )
-
-        generated_tokens = outputs[0][input_length:]
-        generated_text = self.tokenizer.decode(generated_tokens, skip_special_tokens=True)
-        return generated_text.strip()
-
-class Splitter:
-    def split(self, prompt):
-        raise NotImplementedError
-
-    def join(self, tokens):
-        raise NotImplementedError
-
-class StringSplitter(Splitter):
-    def __init__(self, split_pattern = ' '):
-        self.split_pattern = split_pattern
+def get_main_concept(text):
+    doc = nlp(text)
+    candidate_concepts = {token.text.lower() for token in doc if token.pos_ in {"NOUN", "PROPN"}}
     
-    def split(self, prompt):
-        return re.split(self.split_pattern, prompt.strip())
-    
-    def join(self, tokens):
-        return ' '.join(tokens)
+    concept_scores = {word: get_conceptnet_edges(word) for word in candidate_concepts}
+    main_concept = max(concept_scores, key=concept_scores.get)  # Concept with max relations
 
-class TokenizerSplitter(Splitter):
-    def __init__(self, tokenizer):
-        self.tokenizer = tokenizer
-
-    def split(self, prompt):
-        return self.tokenizer.tokenize(prompt)
-
-    def join(self, tokens):
-        return self.tokenizer.convert_tokens_to_string(tokens)
-    
-class ConceptExtractor(StringSplitter):
-    def extract(self, list_word):
-        # return list of concepts and their indexes 
-        raise NotImplementedError
-    
-    def extract_concepts(self, text):
-        return self.extract(self.split(text))
+    return main_concept, concept_scores[main_concept]
 
 
-class BiaSHAP:
+class ConceptSHAP:
     def __init__(self, 
-                 model: Model, 
+                 model, 
                  splitter: Splitter, 
                  vectorizer: Optional[TextVectorizer] = None,
                  debug: bool = False):
@@ -415,8 +296,17 @@ class BiaSHAP:
         # Clean the prompt to prevent empty tokens
         prompt_cleaned = prompt.strip()
         prompt_cleaned = re.sub(r'\s+', ' ', prompt_cleaned)
+        
+        # Get input concepts
+        input_concepts, indexes = select_richest_concepts(prompt_cleaned)
+        print("Input Concepts:", input_concepts)
 
         self.baseline_text = self._calculate_baseline(prompt_cleaned)
+        
+        # Get target concept to explain
+        target_concept = get_main_concept(self.baseline_text)
+        print("Response Dominant Topic:", target_concept)
+        
         token_combinations_results = self._get_result_per_token_combination(
             prompt_cleaned, sampling_ratio
         )

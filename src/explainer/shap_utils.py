@@ -337,3 +337,4 @@ class TokenizerSplitter(Splitter):
 
     def join(self, tokens):
         return self.tokenizer.convert_tokens_to_string(tokens)
+    

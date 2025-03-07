@@ -190,7 +190,9 @@ class ConceptSHAP:
             # change to produce 
             new_concepts = self.processor.replace_concepts(self.concepts, self.replacements, indexes)
             new_words = self.replace_concepts_in_words(self.words, new_concepts, self.indices)
+            print("New Words: ", new_words)
             text = self.processor.join(new_words)
+            print("Text: ", text)
             self._debug_print(f"\nProcessing combination {idx + 1}/{len(all_combinations_to_process)}:")
             self._debug_print(f"Combination concepts: {combination}")
             self._debug_print(f"Concept indexes: {indexes}")
@@ -409,7 +411,13 @@ class ConceptSHAP:
         self.concepts, self.indices = self.processor.split_concepts(prompt_cleaned) # concepts are the samples in TokenSHAP
         self.replacements = self.processor.get_replacements(self.concepts, prompt_cleaned)
         
+        print("Words: ", self.words)
+        print("Concepts: ", self.concepts)
+        print("Indices: ", self.indices)
+        print("Replacements: ", self.replacements)
+        
         self.baseline_text = self._calculate_baseline(prompt_cleaned)
+        print("Baseline Text: ", self.baseline_text)
         # Get target concept to explain
         self.target_concept = self.processor.get_main_concept(self.baseline_text)
         print("Response Dominant Topic:", self.target_concept)

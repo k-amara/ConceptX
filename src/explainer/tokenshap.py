@@ -8,7 +8,7 @@ import numpy as np
 import random
 from typing import Optional
 
-from shap_utils import get_text_before_last_underscore, Splitter, TextVectorizer, TfidfTextVectorizer
+from explainer.shap_utils import get_text_before_last_underscore, Splitter, TextVectorizer, TfidfTextVectorizer
 
 # Refactored TokenSHAP class
 class TokenSHAP:
@@ -41,7 +41,7 @@ class TokenSHAP:
             rand_int = random.randint(1, 2 ** n - 2)
             bin_str = bin(rand_int)[2:].zfill(n)
             combination = [samples[i] for i in range(n) if bin_str[i] == '1']
-            indexes = tuple([i + 1 for i in range(n) if bin_str[i] == '1'])
+            indexes = tuple([i for i in range(n) if bin_str[i] == '1']) ## changes to source code (i+1 --> i)
             if indexes not in exclude_combinations_set and indexes not in sampled_combinations_set:
                 sampled_combinations_set.add((tuple(combination), indexes))
         if len(sampled_combinations_set) < k:
@@ -66,7 +66,7 @@ class TokenSHAP:
         essential_combinations_set = set()
         for i in range(n):
             combination = samples[:i] + samples[i + 1:]
-            indexes = tuple([j + 1 for j in range(n) if j != i])
+            indexes = tuple([j for j in range(n) if j != i]) ## changes to source code (j+1 --> j)
             essential_combinations.append((combination, indexes))
             essential_combinations_set.add(indexes)
 
@@ -143,7 +143,7 @@ class TokenSHAP:
         n = len(samples)
         shapley_values = {}
 
-        for i, sample in enumerate(samples, start=1):
+        for i, sample in enumerate(samples, start=0): ## changes to source code (start=1 --> start=0)
             with_sample = np.average(
                 df_per_token_combination[
                     df_per_token_combination["Token_Indexes"].apply(lambda x: i in x)
@@ -266,9 +266,11 @@ class TokenSHAP:
         df_per_token_combination = self._get_df_per_token_combination(
             token_combinations_results, self.baseline_text
         )
+        print("DF per Concept Combination: ", df_per_token_combination["Cosine_Similarity"])
         self.shapley_values = self._calculate_shapley_values(
             df_per_token_combination, prompt_cleaned
         )
+        print("TokenSHAP values: ", self.shapley_values)
         if print_highlight_text:
             self.highlight_text_background()
 

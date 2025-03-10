@@ -1,7 +1,7 @@
 import os
 
 from model import Model
-from explainer import ConceptSHAP, TokenSHAP, StringSplitter, HuggingFaceEmbeddings
+from explainer import ConceptSHAP, TokenSHAP, StringSplitter, HuggingFaceEmbeddings, ConceptProcessor
 from utils import arg_parse
 from accelerate.utils import set_seed
 
@@ -13,20 +13,21 @@ def main(prompt, args):
         set_seed(args.seed)
         
     model = Model(args)
-    splitter = StringSplitter()
     vectorizer = HuggingFaceEmbeddings()
     
     print("Prompt:", prompt)
     response = model.generate(prompt)
     print("Initial response:", response)
     
-    if args.epxlainer == 'tokenshap':
+    if args.explainer == 'tokenshap':
+        splitter = StringSplitter()
         explainer = TokenSHAP(model, splitter, vectorizer, debug=True)
         df = explainer.analyze(prompt, sampling_ratio=0.1, print_highlight_text=True)
         
     if args.explainer == 'conceptshap':
-        explainer = ConceptSHAP(model, splitter, vectorizer, debug=True)
-        df = explainer.analyze(prompt, sampling_ratio=0.1, print_highlight_text=True)   
+        processor = ConceptProcessor()
+        explainer = ConceptSHAP(model, processor, vectorizer, debug=True)
+        df = explainer.analyze(prompt, sampling_ratio=0.1, print_highlight_text=True)  
         
     print(df)
     explainer.plot_colored_text()
@@ -44,5 +45,6 @@ if __name__ == "__main__":
     print("Parent directory:", parent_dir)
 
     # Example
-    prompt = "Describe the ideal qualities of a leader in a team."
+    prompt = "The artist created a stunning masterpiece that captivated the audience." #"Describe the ideal qualities of a leader in a team."
+    main(prompt, args)
     

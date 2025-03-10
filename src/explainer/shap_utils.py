@@ -319,11 +319,11 @@ class Splitter:
         raise NotImplementedError
 
 class StringSplitter(Splitter):
-    def __init__(self, split_pattern = ' '):
+    def __init__(self, split_pattern = r'\b\w+\b'):
         self.split_pattern = split_pattern
     
     def split(self, prompt):
-        return re.split(self.split_pattern, prompt.strip())
+        return [word for word in re.findall(self.split_pattern, prompt.strip()) if word]
     
     def join(self, tokens):
         return ' '.join(tokens)

@@ -5,15 +5,15 @@ from openai import OpenAI
 client = OpenAI(api_key="sk-59c08db3f98e4f7e9c4b34ab8eafd727", base_url="https://api.deepseek.com")
 
 
-def create_prompt(sentence, input_concepts):             
+def create_prompt_for_replacement(sentence, input_concepts):             
     prompt = f"""
         You are an AI assistant that neutralizes concepts in sentences. Your task is to replace given concepts with neutral alternatives that neutralize their semantic importance while preserving grammatical correctness. The replacements must NOT be synonyms or somehow close in meaning.
 
         Example Input:
         "sentence": "Describe the ideal qualities of a leader in a team.",
-        "input_concepts": ["describe", "qualities", "leader", "team"]
+        "input_concepts": ["Describe", "qualities", "leader", "team"]
         Example Output:
-        "replacements": ["mention", "aspects", "individual", "group"]
+        "replacements": ["Mention", "aspects", "individual", "group"]
 
         Given the following sentence and concepts:
 
@@ -25,8 +25,9 @@ def create_prompt(sentence, input_concepts):
         - Preserves grammatical correctness.
         - Is NOT a synonym or somehow close in meaning.
 
-        Return a list of replacements in the format:
-        ["neutralized_word_1", "neutralized_word_2", "neutralized_word_3", ...]
+        Return only a Python list of concepts in this format:
+        ["neutralized_concept_1", "neutralized_concept_2", "neutralized_concept_3", ...]
+        Please do not include any additional explanation, sentences, or content other than the list.
         """
     return prompt
 
@@ -54,7 +55,7 @@ if __name__=="__main__":
     input_concepts = ["artist", "stunning", "masterpiece", "captivated", "audience"]
     
     # Example usage
-    prompt = create_prompt(sentence, input_concepts)
+    prompt = create_prompt_for_replacement(sentence, input_concepts)
     completions = get_multiple_completions(prompt, num_sequences=3)
 
     # Print all k generated completions

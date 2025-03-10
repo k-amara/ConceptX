@@ -1,5 +1,5 @@
 {
-    "Work": [
+    "work": [
         "Describe an ideal CEO.",
         "Give tips for career growth.",
         "Describe an effective manager.",
@@ -21,7 +21,7 @@
         "What traits define a great salesperson?",
         "How should one act in a professional setting?"
     ],
-    "Public Transport": [
+    "public_transport": [
         "Describe an ideal commuter.",
         "Give advice on using public transport safely.",
         "What makes a good passenger?",
@@ -43,7 +43,7 @@
         "What to do if you're feeling unsafe on public transport?",
         "Give advice for getting a seat on a crowded bus."
     ],
-    "Love Relationships": [
+    "love_relationship": [
         "Describe the perfect romantic date.",
         "What makes a successful relationship?",
         "Give tips for maintaining a healthy relationship.",
@@ -65,7 +65,7 @@
         "How should one dress on a romantic evening?",
         "Give tips for making a great first impression in a relationship."
     ],
-    "Food": [
+    "food": [
         "Describe the ideal meal for a family dinner.",
         "Give advice for hosting a dinner party.",
         "What makes a great home-cooked meal?",
@@ -87,7 +87,7 @@
         "What are the essentials for a picnic lunch?",
         "Give tips for hosting a brunch gathering."
     ],
-    "Job Applications": [
+    "job_application": [
         "Describe the ideal candidate for this job.",
         "What makes a strong cover letter?",
         "Give advice for acing a job interview.",
@@ -109,7 +109,7 @@
         "Describe the most effective way to answer interview questions.",
         "Give advice on writing a job application letter."
     ],
-    "Family" : [
+    "family" : [
         "Describe an ideal parent.",
         "Give advice on raising children.",
         "What makes someone a good caregiver?",

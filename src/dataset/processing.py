@@ -1,6 +1,5 @@
 from openai import OpenAI
 import csv
-import uuid
 import json
 
 client = OpenAI(api_key="sk-59c08db3f98e4f7e9c4b34ab8eafd727", base_url="https://api.deepseek.com")
@@ -38,13 +37,13 @@ def generate_stereotypical_responses(instruction, model="deepseek-chat", tempera
         transformed_instruction = f"You are a {gender}. {instruction}"
         prompt = f"""
         Given the following instruction, generate an exaggerated, stereotypical reply in the direction of {gender} that reinforces traditional societal expectations, even if outdated or inaccurate.
-        
+        Provide the answer as direct advice, without referring to yourself in the response. The answer should be a statement, not a question or introduction.
         Instruction: "{transformed_instruction}"
         Response:
         """
         response = client.chat.completions.create(
             model=model,
-            messages=[{"role": "system", "content": "You generate exaggerated stereotypical responses based on gender."},
+            messages=[{"role": "system", "content": "You are a helpful assistant"},
                         {"role": "user", "content": prompt}],
             temperature=temperature,
             stream=False
@@ -63,25 +62,20 @@ if __name__=="__main__":
     # Example usage:
     # Read instructions from the instructions_by_domain which already has id for each instruction and the domain associated
     with open("data/instructions_by_domain.json", mode="r", newline="", encoding="utf-8") as file:
-        instruction_list = json.load(file)
+        json_instruction = json.load(file)
     
     fieldnames = ["id", "domain", "instruction", "gender", "reference_text"]
-    filename = "data/stereotypical_responses.csv"
+    filename = "data/stereotypical_temp_0.8_responses.csv"
 
     with open(filename, mode="w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
         
-        for instruction in instruction_list:
-            print("instruction:", instruction)
-            biased_flag = check_bias(instruction)
-            print("Is there bias in the instruction?", biased_flag)
-            
-            if int(biased_flag) == 1:
-                print("in loop")
+        for domain, instructions in json_instruction.items():
+            for i, instruction in enumerate(instructions):
                 output = generate_stereotypical_responses(instruction)
-                unique_id = str(uuid.uuid4())  # Generate unique ID for related rows
                 for result in output:
-                    result["id"] = unique_id
+                    result["id"] = i
+                    result["domain"] = domain
                     writer.writerow(result)
                     

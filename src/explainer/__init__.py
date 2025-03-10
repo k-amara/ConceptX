@@ -1,11 +1,15 @@
-from .tokenshap import (
-    TokenSHAP,
+from .shap_utils import (
     HuggingFaceEmbeddings,
     StringSplitter
 )
 
+from .tokenshap import (
+    TokenSHAP
+)
+
 from .conceptshap import (
-    ConceptSHAP
+    ConceptSHAP,
+    ConceptProcessor
 )
 
 
@@ -13,5 +17,6 @@ __all__ = [
     "TokenSHAP",
     "HuggingFaceEmbeddings",
     "StringSplitter",
-    "ConceptSHAP"
+    "ConceptSHAP",
+    "ConceptProcessor"
 ]

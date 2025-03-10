@@ -49,7 +49,7 @@ def arg_parse():
         required=True,
         help="Path to pre-trained model or shortcut name selected in the list of model classes",
     )
-    parser.add_argument("--length", type=int, default=20)
+    parser.add_argument("--length", type=int, default=100)
     parser.add_argument("--stop_token", type=str, default=None, help="Token at which text generation is stopped")
 
     parser.add_argument(

@@ -11,8 +11,8 @@ from typing import Optional
 import spacy
 import requests
 
-from shap_utils import get_text_before_last_underscore, TextVectorizer, HuggingFaceEmbeddings
-
+from explainer.shap_utils import get_text_before_last_underscore, TextVectorizer, HuggingFaceEmbeddings
+from utils._replace import create_prompt_for_replacement, get_multiple_completions
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -21,12 +21,12 @@ import requests
 import spacy
 
 class ConceptProcessor:
-    def __init__(self, split_pattern = ' '):
+    def __init__(self, split_pattern = r'\b\w+\b'):
         self.split_pattern = split_pattern
         self.nlp = spacy.load("en_core_web_sm")
     
     def split(self, prompt):
-        return re.split(self.split_pattern, prompt.strip())
+        return [word for word in re.findall(self.split_pattern, prompt.strip()) if word]
     
     def join(self, words):
         return ' '.join(words)
@@ -34,11 +34,11 @@ class ConceptProcessor:
     def extract_meaningful_concepts(self, text):
         """Extracts meaningful concepts (nouns, proper nouns, verbs) from a given text."""
         doc = self.nlp(text)
-        return [token.text.lower() for token in doc if token.pos_ in {"NOUN", "PROPN", "VERB"} and not token.is_stop]
+        return [token.text for token in doc if token.pos_ in {"NOUN", "PROPN", "VERB"} and not token.is_stop]
 
     def get_conceptnet_edges(self, word):
         """Fetches the number of ConceptNet edges (relations) for a given word."""
-        url = f"http://api.conceptnet.io/c/en/{word}"
+        url = f"http://api.conceptnet.io/c/en/{word.lower()}"
         response = requests.get(url).json()
         return len(response.get('edges', []))  # Count relations
 
@@ -53,19 +53,16 @@ class ConceptProcessor:
             return [], [], []
 
         top_n = max(1, int(len(concepts) * concept_ratio))  # Number of top concepts to select
-        
         # Get scores for concepts, assigning 0 if the word is not in ConceptNet
         concept_scores = {
             word: self.get_conceptnet_edges(word) if self.get_conceptnet_edges(word) > 0 else 0
             for word in concepts
         }
-
         # Sort by score (highest first) and take the top-N concepts
         sorted_list = sorted(concept_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
-
+        
         # Extract top concepts and their scores
         concepts = [item[0] for item in sorted_list]
-            
         # Find indices of the selected concepts in the word list
         indices = [words.index(concept) for concept in concepts if concept in words]
         
@@ -93,7 +90,11 @@ class ConceptProcessor:
             new_words[word_idx] = new_concepts[concept_idx]
         return new_words
     
-    # def get_replacements(self, concepts, text):
+    def get_replacements(self, concepts, text):
+        prompt = create_prompt_for_replacement(text, concepts)
+        completions = get_multiple_completions(prompt, num_sequences=1)
+        print(completions)
+        return eval(completions[0])
     
     def get_main_concept(self, text):
         """Identifies the most important concept in the text based on ConceptNet connections."""
@@ -163,7 +164,7 @@ class ConceptSHAP:
         essential_combinations_set = set()
         for i in range(n):
             combination = self.concepts[:i] + self.concepts[i + 1:]
-            indexes = tuple([j + 1 for j in range(n) if j != i])
+            indexes = tuple([j for j in range(n) if j != i])
             essential_combinations.append((combination, indexes))
             essential_combinations_set.add(indexes)
 
@@ -188,11 +189,9 @@ class ConceptSHAP:
         prompt_responses = {}
         for idx, (combination, indexes) in enumerate(tqdm(all_combinations_to_process, desc="Processing combinations")):
             # change to produce 
-            new_concepts = self.processor.replace_concepts(self.concepts, self.replacements, indexes)
-            new_words = self.replace_concepts_in_words(self.words, new_concepts, self.indices)
-            print("New Words: ", new_words)
+            new_concepts = self.processor.replace_concepts_in_combination(self.concepts, self.replacements, indexes)
+            new_words = self.processor.replace_concepts_in_words(self.words, new_concepts, self.indices)
             text = self.processor.join(new_words)
-            print("Text: ", text)
             self._debug_print(f"\nProcessing combination {idx + 1}/{len(all_combinations_to_process)}:")
             self._debug_print(f"Combination concepts: {combination}")
             self._debug_print(f"Concept indexes: {indexes}")
@@ -207,23 +206,23 @@ class ConceptSHAP:
         self._debug_print("Completed processing all combinations.")
         return prompt_responses
 
-    def _get_df_per_concept_combination(self, prompt_responses):
+    def _get_df_per_concept_combination(self, prompt_responses, baseline_text):
         df = pd.DataFrame(
             [(prompt.split('_')[0], response[0], response[1])
              for prompt, response in prompt_responses.items()],
             columns=['Prompt', 'Response', 'Concept_Indexes']
         )
 
-        all_texts = [self.target_concept] + df["Response"].tolist()
+        all_texts = [baseline_text] + df["Response"].tolist()
         
         # Use the configured vectorizer
         vectors = self.vectorizer.vectorize(all_texts)
-        target_concept_vector = vectors[0]
+        base_vector = vectors[0]
         comparison_vectors = vectors[1:]
         
         # Calculate similarities
         cosine_similarities = self.vectorizer.calculate_similarity(
-            target_concept_vector, comparison_vectors
+            base_vector, comparison_vectors
         )
         
         df["Cosine_Similarity"] = cosine_similarities
@@ -243,7 +242,7 @@ class ConceptSHAP:
         
         shapley_values = {}
 
-        for i, concept in enumerate(self.concepts, start=1):
+        for i, concept in enumerate(self.concepts, start=0):
             with_concept = np.average(
                 df_per_concept_combination[
                     df_per_concept_combination["Concept_Indexes"].apply(lambda x: i in x)
@@ -254,10 +253,19 @@ class ConceptSHAP:
                     df_per_concept_combination["Concept_Indexes"].apply(lambda x: i not in x)
                 ]["Cosine_Similarity"].values
             )
+            shapley_values[concept + "_" + str(self.indices[i])] = with_concept - without_concept
 
-            shapley_values[concept + "_" + str(i)] = with_concept - without_concept
+        print("Shapley Values: ", shapley_values)
+        shapley_values = normalize_shapley_values(shapley_values)
+        print("Normalized Shapley Values: ", shapley_values)
+        
+        for i, word in enumerate(self.words, start=0):
+            if i not in self.indices:
+                shapley_values[word + "_" + str(i)] = np.float32(0.0)
+        
+        shapley_values = {k: v for k, v in sorted(shapley_values.items(), key=lambda x: int(x[0].split('_')[1]))}
 
-        return normalize_shapley_values(shapley_values)
+        return shapley_values
 
     def print_colored_text(self):
         shapley_values = self.shapley_values
@@ -293,49 +301,9 @@ class ConceptSHAP:
         norm_value = (value - min(shapley_values.values())) / (
             max(shapley_values.values()) - min(shapley_values.values())
         )
-        cmap = plt.cm.YlOrRed
+        cmap = plt.cm.YlOrRd
         return colors.rgb2hex(cmap(norm_value))
 
-    def plot_colored_concept(self, new_line=False):
-        num_items = len(self.shapley_values)
-        fig_height = num_items * 0.5 + 1 if new_line else 2
-
-        fig, ax = plt.subplots(figsize=(10, fig_height))
-        ax.axis('off')
-
-        y_pos = 1
-        x_pos = 0.1
-        step = 1 / (num_items + 1)
-
-        for concept, value in self.shapley_values.items():
-            color = self._get_color(value, self.shapley_values)
-            if new_line:
-                ax.text(
-                    0.5, y_pos, get_text_before_last_underscore(concept), color=color, fontsize=20,
-                    ha='center', va='center', transform=ax.transAxes
-                )
-                y_pos -= step
-            else:
-                ax.text(
-                    x_pos, y_pos, get_text_before_last_underscore(concept), color=color, fontsize=20,
-                    ha='left', va='center', transform=ax.transAxes
-                )
-                x_pos += 0.1
-
-        sm = plt.cm.ScalarMappable(
-            cmap=plt.cm.coolwarm,
-            norm=plt.Normalize(
-                vmin=min(self.shapley_values.values()),
-                vmax=max(self.shapley_values.values())
-            )
-        )
-        sm.set_array([])
-        cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05)
-        cbar.ax.set_position([0.05, 0.02, 0.9, 0.05])
-        cbar.set_label('Shapley Value', fontsize=12)
-
-        plt.tight_layout()
-        plt.show()
         
     def plot_colored_text(self, new_line=False):
         
@@ -349,14 +317,9 @@ class ConceptSHAP:
         x_pos = 0.1
         step = 1 / (num_items + 1)
         
-        self.shapley_values
-        
-        all_values = [0] * num_items 
-        for idx, value in zip(self.indices, self.shapley_values):
-            all_values[idx] = value 
-
-        for sample, value in all_values.items():
-            color = self._get_color(value, all_values)
+        print("shapley values: ", self.shapley_values)
+        for sample, value in self.shapley_values.items():
+            color = self._get_color(value, self.shapley_values)
             if new_line:
                 ax.text(
                     0.5, y_pos, get_text_before_last_underscore(sample), color=color, fontsize=20,
@@ -371,10 +334,10 @@ class ConceptSHAP:
                 x_pos += 0.1
 
         sm = plt.cm.ScalarMappable(
-            cmap=plt.cm.coolwarm,
+            cmap=plt.cm.YlOrRd,
             norm=plt.Normalize(
-                vmin=min(all_values.values()),
-                vmax=max(all_values.values())
+                vmin=min(self.shapley_values.values()),
+                vmax=max(self.shapley_values.values())
             )
         )
         sm.set_array([])
@@ -386,6 +349,8 @@ class ConceptSHAP:
         plt.show()
 
     def highlight_text_background(self):
+        self.shapley_values = {k: 0 if np.isnan(v) else v for k, v in self.shapley_values.items()}
+
         min_value = min(self.shapley_values.values())
         max_value = max(self.shapley_values.values())
 
@@ -419,12 +384,14 @@ class ConceptSHAP:
         self.baseline_text = self._calculate_baseline(prompt_cleaned)
         print("Baseline Text: ", self.baseline_text)
         # Get target concept to explain
-        self.target_concept = self.processor.get_main_concept(self.baseline_text)
+        self.target_concept, _ = self.processor.get_main_concept(self.baseline_text)
         print("Response Dominant Topic:", self.target_concept)
         
         concept_combinations_results = self._get_result_per_concept_combination(sampling_ratio)
-        df_per_concept_combination = self._get_df_per_concept_combination(concept_combinations_results)
+        df_per_concept_combination = self._get_df_per_concept_combination(concept_combinations_results, self.baseline_text)
+        print("DF per Concept Combination: ", df_per_concept_combination["Cosine_Similarity"])
         self.shapley_values = self._calculate_shapley_values(df_per_concept_combination)
+        print("ConceptSHAP values: ", self.shapley_values)
         if print_highlight_text:
             self.highlight_text_background()
 

@@ -131,7 +131,7 @@ def prepare_xlm_input(args, model, tokenizer, prompt_text):
 
     # TODO fix mask_token_id setup when configurations will be synchronized between models and tokenizers
     # XLM masked-language modeling (MLM) models need masked token
-    # is_xlm_mlm = "mlm" in args.model_name_or_path
+    # is_xlm_mlm = "mlm" in MODEL_IDENTIFIER[args.model]
     # if is_xlm_mlm:
     #     kwargs["mask_token_id"] = tokenizer.mask_token_id
 
@@ -199,7 +199,7 @@ def sparse_model_config(model_config):
 
 def generate_past_key_values(model, batch_size, seq_len):
     num_block_layers, num_attention_heads, num_embedding_size_per_head = sparse_model_config(model.config)
-    if model.config.model_type == "bloom":
+    if model.config.model_name == "bloom":
         past_key_values = tuple(
             (
                 torch.empty(int(num_attention_heads * batch_size), num_embedding_size_per_head, seq_len)
@@ -309,15 +309,15 @@ class Model:
 
         # Initialize the model and tokenizer
         try:
-            args.model_type = args.model_type.lower()
-            model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
+            args.model_name = args.model_name.lower()
+            model_class, tokenizer_class = MODEL_CLASSES[args.model_name]
         except KeyError:
             raise KeyError("the model {} you specified is not supported. You are welcome to add it and open a PR :)")
 
-        self.tokenizer = tokenizer_class.from_pretrained(args.model_name_or_path)
+        self.tokenizer = tokenizer_class.from_pretrained(MODEL_IDENTIFIER[args.model_name])
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = model_class.from_pretrained(args.model_name_or_path, attn_implementation="sdpa")
+        self.model = model_class.from_pretrained(MODEL_IDENTIFIER[args.model_name], attn_implementation="sdpa")
         self.model = torch.compile(self.model)
         # Set the model to the right device
         self.model.to(self.distributed_state.device)
@@ -349,9 +349,9 @@ class Model:
         prompt_text = prompt if prompt else input("Model prompt >>> ")
 
         # Different models need different input formatting and/or extra arguments
-        requires_preprocessing = self.args.model_type in PREPROCESSING_FUNCTIONS.keys()
+        requires_preprocessing = self.args.model_name in PREPROCESSING_FUNCTIONS.keys()
         if requires_preprocessing:
-            prepare_input = PREPROCESSING_FUNCTIONS.get(args.model_type)
+            prepare_input = PREPROCESSING_FUNCTIONS.get(args.model_name)
             preprocessed_prompt_text = prepare_input(args, self.model, self.tokenizer, prompt_text)
 
             if self.model.__class__.__name__ in ["TransfoXLLMHeadModel"]:

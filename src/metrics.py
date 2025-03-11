@@ -131,7 +131,7 @@ def get_scores(
             N -= 1
             continue
         else:
-            new_instruction = replace_token_ids(instruction, mask, tokenizer, how="random")
+            new_instruction = replace_words(instruction, mask, how="random")
             new_response = model.generate(new_instruction)
             
             vectors = self.vectorizer.vectorize([base_response, new_response])
@@ -147,9 +147,7 @@ def get_scores(
 
     return {
         "instruction_id": valid_ids,
-        "instruction": valid_instructions,
-        "tokens": valid_tokens,
-        "token_ids": valid_token_ids,
+        "instruction": valid_instructions
     }
 
 # Function to save scores

@@ -274,4 +274,11 @@ class TokenSHAP:
         if print_highlight_text:
             self.highlight_text_background()
 
-        return df_per_token_combination
+        return 
+    
+    def __call__(self, prompts, sampling_ratio=0.0):
+        scores = []
+        for prompt in prompts:
+            self.analyze(prompt, sampling_ratio=sampling_ratio, print_highlight_text=True)
+            scores.append(self.shapley_values)
+        return scores

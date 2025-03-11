@@ -36,18 +36,11 @@ def arg_parse():
     ### Language Model Parameters
     
     parser.add_argument(
-        "--model_type",
+        "--model_name",
         default=None,
         type=str,
         required=True,
         help="Model type selected in the list of model classes",
-    )
-    parser.add_argument(
-        "--model_name_or_path",
-        default=None,
-        type=str,
-        required=True,
-        help="Path to pre-trained model or shortcut name selected in the list of model classes",
     )
     parser.add_argument("--length", type=int, default=100)
     parser.add_argument("--stop_token", type=str, default=None, help="Token at which text generation is stopped")
@@ -82,6 +75,16 @@ def arg_parse():
     )
     parser.add_argument("--jit", action="store_true", help="Whether or not to use jit trace to accelerate inference")
     
+    
+    ### Dataset
+    
+    parser.add_argument(
+        "--dataset",
+        default=None,
+        type=str,
+        required=True,
+        help="Dataset of intructions selected in the list of datasets (alpaca, genderbias, sentiment)",
+    )
     
     
     ### Explainability Method Parameters

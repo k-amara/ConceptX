@@ -15,8 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Conditional text generation with the auto-regressive models of the library (GPT/GPT-2/CTRL/Transformer-XL/XLNet)"""
-
-import argparse
+import os
 import inspect
 import logging
 from typing import Tuple
@@ -24,6 +23,10 @@ from typing import Tuple
 import torch
 from accelerate import PartialState
 from accelerate.utils import set_seed
+from dotenv import load_dotenv
+
+# Load the .env file
+load_dotenv()
 
 from transformers import (
     AutoTokenizer,
@@ -51,7 +54,7 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 from huggingface_hub import login
 
 # Step 1: Log in to Hugging Face using your access token
-login(token="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")
+login(token=os.getenv("HF_TOKEN"))
 
 
 logging.basicConfig(
@@ -77,7 +80,7 @@ MODEL_CLASSES = {
 }
 
 MODEL_IDENTIFIER = {
-    "gpu": "gpu",
+    "gpt2": "gpt2",
     "xlnet": "xlnet-base-cased",
     "llama": "meta-llama/Llama-3.2-3B-Instruct"
 }
@@ -289,9 +292,6 @@ class _ModelFallbackWrapper(GenerationMixin):
         beam_idx at every generation step.
         """
         return self._default._reorder_cache(past_key_values, beam_idx)
-
-
-
 
 
 

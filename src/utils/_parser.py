@@ -130,6 +130,14 @@ def arg_parse():
     )
     
     
+    parser.add_argument(
+        "--vectorizer",
+        default=None,
+        type=str,
+        help="Vectorizer type selected in the list of explainer classes (huggingface, openai, tfidf)",
+    )
+    
+    
     args, unknown = parser.parse_known_args()
     return parser, args
 

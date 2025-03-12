@@ -15,25 +15,23 @@ def main(prompt, args):
     model = Model(args)
     vectorizer = load_vectorizer(args.vectorizer)
     
-    print("Prompt:", prompt)
-    response = model.generate(prompt)
-    print("Initial response:", response)
+    df = load_data(args)
+    print(df.head())
+    instructions = df['instruction'].tolist()[:3]
+    
+    vectorizer = load_vectorizer(args.vectorizer)
     
     if args.explainer == 'tokenshap':
         splitter = StringSplitter()
-        explainer = TokenSHAP(model, splitter, vectorizer, debug=True)
-        df = explainer.analyze(prompt, sampling_ratio=0.1, print_highlight_text=True)
+        explainer = TokenSHAP(model, splitter, vectorizer, debug=False, sampling_ratio=1.0)
         
     if args.explainer == 'conceptshap':
-        processor = ConceptProcessor()
-        explainer = ConceptSHAP(model, processor, vectorizer, debug=True)
-        df = explainer.analyze(prompt, sampling_ratio=0.1, print_highlight_text=True)  
+        splitter = ConceptSplitter()
+        explainer = ConceptSHAP(model, splitter, vectorizer, debug=False, sampling_ratio=1.0)
         
-    print(df)
-    explainer.plot_colored_text()
-    explainer.print_colored_text()
-    explainer.highlight_text_background()
-    print(explainer.shapley_values)
+    scores = explainer(instructions)
+    # a list of dictionaries, each dictionary contains the explanation for a single instruction
+    print("Scores:", scores)
     return
     
     

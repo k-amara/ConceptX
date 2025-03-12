@@ -6,7 +6,10 @@ import numpy as np
 import random
 from typing import Optional
 
-from explainers import Explainer, Splitter, TextVectorizer, normalize_scores
+from explainers._explainer import Explainer
+from explainers._splitter import Splitter
+from explainers._vectorizer import TextVectorizer
+from explainers._explain_utils import normalize_scores
 
 # Refactored TokenSHAP class
 class TokenSHAP(Explainer):
@@ -14,8 +17,10 @@ class TokenSHAP(Explainer):
                  model, 
                  splitter: Splitter, 
                  vectorizer: Optional[TextVectorizer] = None,
-                 debug: bool = False):
+                 debug: bool = False, 
+                 sampling_ratio: float = 0.0):
         super().__init__(model, splitter, vectorizer, debug)
+        self.sampling_ratio = sampling_ratio
 
     def _generate_random_combinations(self, samples, k, exclude_combinations_set):
         n = len(samples)
@@ -35,7 +40,7 @@ class TokenSHAP(Explainer):
             self._debug_print(f"Warning: Could only generate {len(sampled_combinations_set)} unique combinations out of requested {k}")
         return list(sampled_combinations_set)
 
-    def _get_result_per_token_combination(self, prompt, sampling_ratio):
+    def _get_result_per_token_combination(self, prompt):
         samples = self.splitter.split(prompt)
         n = len(samples)
         self._debug_print(f"Number of samples (tokens): {n}")
@@ -45,8 +50,8 @@ class TokenSHAP(Explainer):
         num_total_combinations = 2 ** n - 1
         self._debug_print(f"Total possible combinations (excluding empty set): {num_total_combinations}")
 
-        num_sampled_combinations = int(num_total_combinations * sampling_ratio)
-        self._debug_print(f"Number of combinations to sample based on sampling ratio {sampling_ratio}: {num_sampled_combinations}")
+        num_sampled_combinations = int(num_total_combinations * self.sampling_ratio)
+        self._debug_print(f"Number of combinations to sample based on sampling ratio {self.sampling_ratio}: {num_sampled_combinations}")
 
         # Always include combinations missing one token
         essential_combinations = []
@@ -119,7 +124,7 @@ class TokenSHAP(Explainer):
 
         samples = self.splitter.split(prompt)
         n = len(samples)
-        shapley_values = {}
+        scores = {}
 
         for i, sample in enumerate(samples, start=0): ## changes to source code (start=1 --> start=0)
             with_sample = np.average(
@@ -133,28 +138,26 @@ class TokenSHAP(Explainer):
                 ]["Cosine_Similarity"].values
             )
 
-            shapley_values[sample + "_" + str(i)] = with_sample - without_sample
+            scores[sample + "_" + str(i)] = with_sample - without_sample
 
-        return normalize_scores(shapley_values)
+        return normalize_scores(scores)
 
-    def analyze(self, prompt, sampling_ratio=0.0, print_highlight_text=False):
+    def analyze(self, prompt, print_highlight_text=True):
         # Clean the prompt to prevent empty tokens
         prompt_cleaned = prompt.strip()
         prompt_cleaned = re.sub(r'\s+', ' ', prompt_cleaned)
 
         self.baseline_text = self._calculate_baseline(prompt_cleaned)
         token_combinations_results = self._get_result_per_token_combination(
-            prompt_cleaned, sampling_ratio
+            prompt_cleaned
         )
         df_per_token_combination = self._get_df_per_token_combination(
             token_combinations_results, self.baseline_text
         )
-        print("DF per Concept Combination: ", df_per_token_combination["Cosine_Similarity"])
-        self.shapley_values = self._calculate_shapley_values(
+        self.scores = self._calculate_shapley_values(
             df_per_token_combination, prompt_cleaned
         )
-        print("TokenSHAP values: ", self.shapley_values)
         if print_highlight_text:
             self.highlight_text_background()
 
-        return self.shapley_values
+        return self.scores

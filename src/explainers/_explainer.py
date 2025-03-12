@@ -2,7 +2,9 @@
 import matplotlib.pyplot as plt
 from matplotlib import colors
 
-from explainers import get_text_before_last_underscore, Splitter, TextVectorizer, TfidfTextVectorizer
+from explainers._explain_utils import get_text_before_last_underscore
+from explainers._splitter import Splitter
+from explainers._vectorizer import TextVectorizer, TfidfTextVectorizer
 from typing import Optional
 
 # Refactored TokenSHAP class
@@ -36,9 +38,9 @@ class Explainer:
         return scores
 
     def print_colored_text(self):
-        shapley_values = self.shapley_values
-        min_value = min(shapley_values.values())
-        max_value = max(shapley_values.values())
+        scores = self.scores
+        min_value = min(scores.values())
+        max_value = max(scores.values())
 
         def get_color(value):
             norm_value = (value - min_value) / (max_value - min_value)
@@ -54,7 +56,7 @@ class Explainer:
 
             return '#{:02x}{:02x}{:02x}'.format(r, g, b)
 
-        for token, value in shapley_values.items():
+        for token, value in scores.items():
             color = get_color(value)
             print(
                 f"\033[38;2;{int(color[1:3], 16)};"
@@ -65,15 +67,15 @@ class Explainer:
             )
         print()
 
-    def _get_color(self, value, shapley_values):
-        norm_value = (value - min(shapley_values.values())) / (
-            max(shapley_values.values()) - min(shapley_values.values())
+    def _get_color(self, value, scores):
+        norm_value = (value - min(scores.values())) / (
+            max(scores.values()) - min(scores.values())
         )
         cmap = plt.cm.coolwarm
         return colors.rgb2hex(cmap(norm_value))
 
     def plot_colored_text(self, new_line=False):
-        num_items = len(self.shapley_values)
+        num_items = len(self.scores)
         fig_height = num_items * 0.5 + 1 if new_line else 2
 
         fig, ax = plt.subplots(figsize=(10, fig_height))
@@ -83,8 +85,8 @@ class Explainer:
         x_pos = 0.1
         step = 1 / (num_items + 1)
 
-        for sample, value in self.shapley_values.items():
-            color = self._get_color(value, self.shapley_values)
+        for sample, value in self.scores.items():
+            color = self._get_color(value, self.scores)
             if new_line:
                 ax.text(
                     0.5, y_pos, get_text_before_last_underscore(sample), color=color, fontsize=20,
@@ -101,21 +103,21 @@ class Explainer:
         sm = plt.cm.ScalarMappable(
             cmap=plt.cm.coolwarm,
             norm=plt.Normalize(
-                vmin=min(self.shapley_values.values()),
-                vmax=max(self.shapley_values.values())
+                vmin=min(self.scores.values()),
+                vmax=max(self.scores.values())
             )
         )
         sm.set_array([])
         cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05)
         cbar.ax.set_position([0.05, 0.02, 0.9, 0.05])
-        cbar.set_label('Shapley Value', fontsize=12)
+        cbar.set_label('Scores', fontsize=12)
 
         plt.tight_layout()
         plt.show()
 
     def highlight_text_background(self):
-        min_value = min(self.shapley_values.values())
-        max_value = max(self.shapley_values.values())
+        min_value = min(self.scores.values())
+        max_value = max(self.scores.values())
 
         def get_background_color(value):
             norm_value = ((value - min_value) / (max_value - min_value)) ** 3
@@ -124,7 +126,7 @@ class Explainer:
             b = int(255 - (norm_value * 255))
             return f"\033[48;2;{r};{g};{b}m"
 
-        for token, value in self.shapley_values.items():
+        for token, value in self.scores.items():
             background_color = get_background_color(value)
             reset_color = "\033[0m"
             print(f"{background_color}{get_text_before_last_underscore(token)}{reset_color}", end=' ')

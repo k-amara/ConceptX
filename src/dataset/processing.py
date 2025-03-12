@@ -1,10 +1,18 @@
 from openai import OpenAI
 import csv
 import json
+from dotenv import load_dotenv
+import os
 
-client = OpenAI(api_key="sk-59c08db3f98e4f7e9c4b34ab8eafd727", base_url="https://api.deepseek.com")
+# Load the .env file
+load_dotenv()
 
-def check_bias(instruction, model="deepseek-chat"):
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"), # OpenAI API Key
+    base_url="https://aikey-gateway.ivia.ch" # LiteLLM Proxy is OpenAI compatible, Read More: https://docs.litellm.ai/docs/proxy/user_keys
+)
+
+def check_bias(instruction, model="azure/gpt-4o"):
     prompt = f"""
     Determine whether the following instruction could trigger biased responses. 
     Return 1 if it does, otherwise return 0.
@@ -31,7 +39,7 @@ def check_bias(instruction, model="deepseek-chat"):
     
     return int(response.choices[0].message.content.strip()[0])
 
-def generate_stereotypical_responses(instruction, model="deepseek-chat", temperature=0.8):
+def generate_stereotypical_responses(instruction, model="azure/gpt-4o", temperature=0.8):
     results = []
     for gender in ["woman", "man"]:
         transformed_instruction = f"You are a {gender}. {instruction}"

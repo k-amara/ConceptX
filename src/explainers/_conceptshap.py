@@ -1,23 +1,26 @@
 #from token_shap import *
 import pandas as pd
 from tqdm.auto import tqdm
-import matplotlib.pyplot as plt
-from matplotlib import colors
 import re
 import numpy as np
 import random
-from typing import Optional
-from explainers import TextVectorizer, ConceptSplitter, normalize_scores
-from typing import List, Optional, Dict, Any
+from typing import Optional, Any
+
+from explainers._explainer import Explainer
+from explainers._splitter import ConceptSplitter
+from explainers._vectorizer import TextVectorizer
+from explainers._explain_utils import normalize_scores
 
 
-class ConceptSHAP:
+class ConceptSHAP(Explainer):
     def __init__(self, 
                  model, 
                  splitter: ConceptSplitter, 
                  vectorizer: Optional[TextVectorizer] = None,
-                 debug: bool = False):
+                 debug: bool = False,
+                 sampling_ratio: float = 0.0):
         super().__init__(model, splitter, vectorizer, debug)
+        self.sampling_ratio = sampling_ratio
 
     def _generate_random_combinations(self, samples, k, exclude_combinations_set):
         n = len(samples)
@@ -37,7 +40,7 @@ class ConceptSHAP:
             self._debug_print(f"Warning: Could only generate {len(sampled_combinations_set)} unique combinations out of requested {k}")
         return list(sampled_combinations_set)
 
-    def _get_result_per_concept_combination(self, sampling_ratio):
+    def _get_result_per_concept_combination(self):
         n = len(self.concepts)
         self._debug_print(f"Number of concepts: {n}")
         if n > 1000:
@@ -46,8 +49,8 @@ class ConceptSHAP:
         num_total_combinations = 2 ** n - 1
         self._debug_print(f"Total possible combinations (excluding empty set): {num_total_combinations}")
 
-        num_sampled_combinations = int(num_total_combinations * sampling_ratio)
-        self._debug_print(f"Number of combinations to sample based on sampling ratio {sampling_ratio}: {num_sampled_combinations}")
+        num_sampled_combinations = int(num_total_combinations * self.sampling_ratio)
+        self._debug_print(f"Number of combinations to sample based on sampling ratio {self.sampling_ratio}: {num_sampled_combinations}")
 
         # Always include combinations missing one concept
         essential_combinations = []
@@ -141,13 +144,13 @@ class ConceptSHAP:
         
         for i, word in enumerate(self.words, start=0):
             if i not in self.indices:
-                scores[word + "_" + str(i)] = np.float32(0.0)
+                scores[word + "_" + str(i)] = np.float32(-1.0)
         
         scores = {k: v for k, v in sorted(scores.items(), key=lambda x: int(x[0].split('_')[1]))}
 
         return scores
 
-    def analyze(self, prompt, baseline=None, sampling_ratio=0.0, print_highlight_text=False, **kwargs):
+    def analyze(self, prompt, baseline=None, print_highlight_text=True, **kwargs):
         # Clean the prompt to prevent empty tokens
         prompt_cleaned = prompt.strip()
         prompt_cleaned = re.sub(r'\s+', ' ', prompt_cleaned)
@@ -164,7 +167,7 @@ class ConceptSHAP:
         self.baseline_text = self._get_baseline_text(prompt_cleaned, baseline, **kwargs)
         print(f"Baseline Text: {self.baseline_text}")
 
-        concept_combinations_results = self._get_result_per_concept_combination(sampling_ratio)
+        concept_combinations_results = self._get_result_per_concept_combination()
         df_per_concept_combination = self._get_df_per_concept_combination(concept_combinations_results, self.baseline_text)
         print("DF per Concept Combination: ", df_per_concept_combination["Cosine_Similarity"])
         self.scores = self._calculate_scores(df_per_concept_combination)

@@ -2,7 +2,6 @@ import re
 import spacy
 import requests
 
-from explainers import get_text_before_last_underscore, TextVectorizer, HuggingFaceEmbeddings
 from utils import create_prompt_for_replacement, get_multiple_completions
 
 nlp = spacy.load("en_core_web_sm")
@@ -48,7 +47,7 @@ class ConceptSplitter(Splitter):
     def extract_meaningful_concepts(self, text):
         """Extracts meaningful concepts (nouns, proper nouns, verbs) from a given text."""
         doc = self.nlp(text)
-        return [token.text for token in doc if token.pos_ in {"NOUN", "PROPN", "VERB"} and not token.is_stop]
+        return [token.text for token in doc if token.pos_ in {"NOUN", "PROPN", "VERB", "ADJ"} and not token.is_stop]
 
     def get_conceptnet_edges(self, word):
         """Fetches the number of ConceptNet edges (relations) for a given word."""

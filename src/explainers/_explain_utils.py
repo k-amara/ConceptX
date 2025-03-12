@@ -1,21 +1,7 @@
-from itertools import combinations
-from transformers import AutoTokenizer, AutoModelForCausalLM
-import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from tqdm.auto import tqdm
-import matplotlib.pyplot as plt
-from matplotlib import colors
-import re
-import numpy as np
-import random
-import colorsys
-import os
-
 import requests
 import json
 import base64
-from typing import Optional, Callable, Any, List, Dict, Union, Tuple
+from typing import Optional, Callable, Any
 from os import getenv
 
 

@@ -1,7 +1,7 @@
 import os
 import pandas as pd
-
-from explainers import TextVectorizer, HuggingFaceEmbeddings, OpenAIEmbeddings, TfidfTextVectorizer
+from datasets import load_dataset
+from explainers._vectorizer import TextVectorizer, HuggingFaceEmbeddings, OpenAIEmbeddings, TfidfTextVectorizer
 
 
 def load_vectorizer(vectorizer_name: str, **kwargs) -> TextVectorizer:
@@ -30,14 +30,19 @@ def load_vectorizer(vectorizer_name: str, **kwargs) -> TextVectorizer:
     
 
 
-def load_data(dataset_name, data_save_dir):
+def load_data(args):
     # Load dataset based on argument
-    if dataset_name == "alpaca":
-        df = pd.read_parquet("hf://datasets/tatsu-lab/alpaca/data/train-00000-of-00001-a09b74b3ef9c3b56.parquet")
-    elif dataset_name == "genderbias":
-        pd.reas_csv(os.join(data_save_dir, "stereotypical_temp_0.8_responses.csv"))
+    if args.dataset == "alpaca":
+        ds = load_dataset("tatsu-lab/alpaca")
+        df = pd.DataFrame(ds['train'])
+        df_filtered = df[df['input'].isna() | (df['input'] == '')]
+        df_filtered['id'] = df_filtered.index
+        return df_filtered[['id', 'instruction']]
+    elif args.dataset == "genderbias":
+        df = pd.reas_csv(os.join(args.data_save_dir, "stereotypical_temp_0.8_responses.csv"))
         # ['id', 'instruction', 'reference', 'gender']
+        return df[['id', 'instruction', 'reference']]
     else:
-        raise ValueError("Unknown dataset type passed: %s!" % dataset_name)
+        raise ValueError("Unknown dataset type passed: %s!" % args.dataset_name)
     
   ## final dataset df.columns ['id', 'instruction', 'reference_text']

@@ -12,6 +12,7 @@ from ._vectorizer import (
     TextVectorizer,
     HuggingFaceEmbeddings,
     OpenAIEmbeddings,
+    TfidfTextVectorizer
 )
 
 from ._baselines import (
@@ -25,8 +26,7 @@ from ._tokenshap import (
 )
 
 from ._conceptshap import (
-    ConceptSHAP,
-    ConceptProcessor
+    ConceptSHAP
 )
 
 from ._explain_utils import (
@@ -44,11 +44,11 @@ __all__ = [
     "TextVectorizer",
     "HuggingFaceEmbeddings",
     "OpenAIEmbeddings",
+    "TfidfTextVectorizer",
     "StringSplitter",
     "TokenizerSplitter",
     "ConceptSplitter",
     "ConceptSHAP",
-    "ConceptProcessor",
     "get_text_before_last_underscore",
     "normalize_scores"
 ]

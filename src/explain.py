@@ -1,31 +1,35 @@
 import os
-import dill
-
-from explainers import Random, SVSampling, Ablation, HEDGEOrig, TokenSHAP, ConceptSHAP
-from explainer import ConceptSHAP, TokenSHAP, StringSplitter, HuggingFaceEmbeddings, ConceptProcessor
+from explainers import *
+from utils import load_vectorizer
 
 
-def compute_explanations(model, args):
+def compute_explanations(instructions, model, vectorizer, args):
     #### Explain the model ####
     # Choose appropriate explainer based on specified explainer
     if args.explainer == "random":
-        explainer = Random()
+        splitter = TokenizerSplitter()
+        explainer = Random(model, splitter)
     elif args.explainer == "svsampling":
-        explainer = SVSampling()
+        splitter = TokenizerSplitter()
+        explainer = SVSampling(model, splitter)
     elif args.explainer == "ablation":
-        explainer = Ablation()
+        splitter = TokenizerSplitter()
+        explainer = FeatAblation(model, splitter)
     elif args.explainer == "tokenshap":
         splitter = StringSplitter()
+        vectorizer = load_vectorizer("tfidf")
         explainer = TokenSHAP(model, splitter, vectorizer, debug=True)
-        df = explainer.analyze(prompt, sampling_ratio=0.1, print_highlight_text=True)
     elif args.explainer == "conceptshap":
-        processor = ConceptProcessor()
-        explainer = ConceptSHAP(model, processor, vectorizer, debug=True)
-        df = explainer.analyze(prompt, sampling_ratio=0.1, print_highlight_text=True)  
+        splitter = ConceptSplitter()
+        vectorizer = load_vectorizer("tfidf")
+        explainer = ConceptSHAP(model, splitter, vectorizer, debug=True)
     else:
         raise ("Unknown explainer type passed: %s!" % args.explainer)
     
-    return df
+    scores = explainer(instructions)
+    # a list of dictionaries, each dictionary contains the explanation for a single instruction
+    print("Scores:", scores)
+    return scores
 
 def save_path(args):
     save_dir = os.path.join(args.result_save_dir, f'explanations/{args.model_name}/{args.dataset}/{args.explainer}/seed_{args.seed}')

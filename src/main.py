@@ -1,7 +1,7 @@
 import os
 
 from model import Model
-from explainer import ConceptSHAP, TokenSHAP, StringSplitter, HuggingFaceEmbeddings, ConceptProcessor
+from explainers import ConceptSHAP, TokenSHAP, StringSplitter, TextVectorizer, ConceptProcessor
 from utils import arg_parse
 from accelerate.utils import set_seed
 
@@ -13,7 +13,7 @@ def main(prompt, args):
         set_seed(args.seed)
         
     model = Model(args)
-    vectorizer = HuggingFaceEmbeddings()
+    vectorizer = TextVectorizer(args)
     
     print("Prompt:", prompt)
     response = model.generate(prompt)

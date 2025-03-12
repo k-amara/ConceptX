@@ -1,8 +1,8 @@
 import os
 
 from model import Model
-from explainers import ConceptSHAP, TokenSHAP, StringSplitter, TextVectorizer, ConceptProcessor
-from utils import arg_parse
+from explainers import *
+from utils import arg_parse,load_data, load_vectorizer
 from accelerate.utils import set_seed
 
 
@@ -13,7 +13,7 @@ def main(prompt, args):
         set_seed(args.seed)
         
     model = Model(args)
-    vectorizer = TextVectorizer(args)
+    vectorizer = load_vectorizer(args.vectorizer)
     
     print("Prompt:", prompt)
     response = model.generate(prompt)

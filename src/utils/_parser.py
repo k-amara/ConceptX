@@ -8,15 +8,15 @@ from transformers import set_seed
 # Define the path to the data, model, logs, results, and colors
 #
 
-CKPT_ROOT = "/cluster/home/kamara/biashap/"
-STORAGE = "/cluster/work/ilic/kamara/biashap/"
-#CKPT_ROOT = "/Users/kenzaamara/GithubProjects/biashap/"
-#STORAGE = "/Users/kenzaamara/GithubProjects/biashap/"
+CKPT_ROOT = "/cluster/home/kamara/conceptx/"
+STORAGE = "/cluster/work/ilic/kamara/conceptx/"
+#CKPT_ROOT = "/Users/kenzaamara/GithubProjects/conceptx/"
+#STORAGE = "/Users/kenzaamara/GithubProjects/conceptx/"
 DATA_DIR = CKPT_ROOT + "data/"
 MODEL_DIR = STORAGE + "models/"
 HIDDEN_STATE_DIR = STORAGE + "hidden_states/"
 FIG_DIR = CKPT_ROOT + "figures/"
-RESULT_DIR = STORAGE + "results/"
+RESULT_DIR = CKPT_ROOT + "results/"
 
 
 
@@ -31,6 +31,38 @@ def fix_random_seed(seed):
 
 def arg_parse():
     parser = argparse.ArgumentParser()
+    
+    parser.add_argument(
+        "--data_save_dir",
+        help="Directory where benchmark is located",
+        type=str,
+        default=DATA_DIR,
+    )
+
+    parser.add_argument(
+        "--model_save_dir",
+        help="Directory where figures are saved",
+        type=str,
+        default=MODEL_DIR,
+    )
+    
+    parser.add_argument(
+        "--result_save_dir",
+        help="Directory where results are saved",
+        type=str,
+        default=RESULT_DIR,
+    )
+    parser.add_argument(
+        "--fig_save_dir",
+        help="Directory where figures are saved",
+        type=str,
+        default="figures",
+    )
+    
+    
+    parser.add_argument(
+        "--num_batch", type=int, default=None
+    )
     
     
     ### Language Model Parameters

@@ -7,7 +7,8 @@ import re
 import numpy as np
 import random
 from typing import Optional
-from explainers import get_text_before_last_underscore, TextVectorizer, ConceptSplitter
+from explainers import TextVectorizer, ConceptSplitter
+from typing import List, Optional, Dict, Any
 
 
 class ConceptSHAP:
@@ -156,7 +157,7 @@ class ConceptSHAP:
 
         return shapley_values
 
-    def analyze(self, prompt, baseline, sampling_ratio=0.0, print_highlight_text=False):
+    def analyze(self, prompt, baseline=None, sampling_ratio=0.0, print_highlight_text=False, **kwargs):
         # Clean the prompt to prevent empty tokens
         prompt_cleaned = prompt.strip()
         prompt_cleaned = re.sub(r'\s+', ' ', prompt_cleaned)
@@ -170,15 +171,9 @@ class ConceptSHAP:
         print("Indices: ", self.indices)
         print("Replacements: ", self.replacements)
         
-        if baseline is None:
-            self.baseline_text = self._calculate_baseline(prompt_cleaned)
-        elif baseline == "concept":
-            self.baseline_text, _ = self.splitter.get_main_concept(self._calculate_baseline(prompt_cleaned))
-            print("Response Dominant Topic:", self.baseline_text)
-        elif baseline == "reference":
-            self.baseline_text = self._get_reference(prompt_cleaned)
-        print("baseline Text: ", self.baseline_text)
-        
+        self.baseline_text = self._get_baseline_text(prompt_cleaned, baseline, **kwargs)
+        print(f"Baseline Text: {self.baseline_text}")
+
         concept_combinations_results = self._get_result_per_concept_combination(sampling_ratio)
         df_per_concept_combination = self._get_df_per_concept_combination(concept_combinations_results, self.baseline_text)
         print("DF per Concept Combination: ", df_per_concept_combination["Cosine_Similarity"])
@@ -189,8 +184,25 @@ class ConceptSHAP:
 
         return self.shapley_values
     
-    def __call__(self, prompts, baseline=None):
+    def __call__(self, prompts, baseline=None, **kwargs):
         scores = []
-        for prompt in prompts:
-            scores.append(self.analyze(prompt, baseline))
+        reference_texts = kwargs.get("reference_texts", None) if baseline == "reference" else None
+        
+        for i, prompt in enumerate(prompts):
+            reference_text = reference_texts[i] if reference_texts else None
+            scores.append(self.analyze(prompt, baseline, reference_text=reference_text))
+        
         return scores
+    
+    def _get_baseline_text(self, prompt_cleaned: str, baseline: Optional[str], **kwargs: Any) -> str:
+        """Determines the baseline text based on the given option."""
+        if baseline is None:
+            return self._calculate_baseline(prompt_cleaned)
+        if baseline == "concept":
+            baseline_text, _ = self.splitter.get_main_concept(self._calculate_baseline(prompt_cleaned))
+            print(f"Response Dominant Topic: {baseline_text}")
+            return baseline_text
+        if baseline == "reference":
+            return kwargs.get("reference_text", "")
+
+        raise ValueError(f"Invalid baseline option: {baseline}")

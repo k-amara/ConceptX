@@ -6,7 +6,7 @@ import numpy as np
 import random
 from typing import Optional
 
-from explainers import Explainer, Splitter, TextVectorizer
+from explainers import Explainer, Splitter, TextVectorizer, normalize_scores
 
 # Refactored TokenSHAP class
 class TokenSHAP(Explainer):
@@ -116,15 +116,6 @@ class TokenSHAP(Explainer):
         return df
 
     def _calculate_shapley_values(self, df_per_token_combination, prompt):
-        def normalize_shapley_values(shapley_values, power=1):
-            min_value = min(shapley_values.values())
-            shifted_values = {k: v - min_value for k, v in shapley_values.items()}
-            powered_values = {k: v ** power for k, v in shifted_values.items()}
-            total = sum(powered_values.values())
-            if total == 0:
-                return {k: 1 / len(powered_values) for k in powered_values}
-            normalized_values = {k: v / total for k, v in powered_values.items()}
-            return normalized_values
 
         samples = self.splitter.split(prompt)
         n = len(samples)
@@ -144,7 +135,7 @@ class TokenSHAP(Explainer):
 
             shapley_values[sample + "_" + str(i)] = with_sample - without_sample
 
-        return normalize_shapley_values(shapley_values)
+        return normalize_scores(shapley_values)
 
     def analyze(self, prompt, sampling_ratio=0.0, print_highlight_text=False):
         # Clean the prompt to prevent empty tokens

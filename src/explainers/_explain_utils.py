@@ -110,3 +110,13 @@ def interact_with_ollama(
 def get_text_before_last_underscore(token):
     return token.rsplit('_', 1)[0]
 
+def normalize_scores(scores, power=1):
+    min_value = min(scores.values())
+    shifted_values = {k: v - min_value for k, v in scores.items()}
+    powered_values = {k: v ** power for k, v in shifted_values.items()}
+    total = sum(powered_values.values())
+    if total == 0:
+        return {k: 1 / len(powered_values) for k in powered_values}
+    normalized_values = {k: v / total for k, v in powered_values.items()}
+    return normalized_values
+

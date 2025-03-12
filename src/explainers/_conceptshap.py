@@ -7,7 +7,7 @@ import re
 import numpy as np
 import random
 from typing import Optional
-from explainers import TextVectorizer, ConceptSplitter
+from explainers import TextVectorizer, ConceptSplitter, normalize_scores
 from typing import List, Optional, Dict, Any
 
 
@@ -119,18 +119,8 @@ class ConceptSHAP:
 
         return df
 
-    def _calculate_shapley_values(self, df_per_concept_combination):
-        def normalize_shapley_values(shapley_values, power=1):
-            min_value = min(shapley_values.values())
-            shifted_values = {k: v - min_value for k, v in shapley_values.items()}
-            powered_values = {k: v ** power for k, v in shifted_values.items()}
-            total = sum(powered_values.values())
-            if total == 0:
-                return {k: 1 / len(powered_values) for k in powered_values}
-            normalized_values = {k: v / total for k, v in powered_values.items()}
-            return normalized_values
-        
-        shapley_values = {}
+    def _calculate_scores(self, df_per_concept_combination):
+        scores = {}
 
         for i, concept in enumerate(self.concepts, start=0):
             with_concept = np.average(
@@ -143,19 +133,19 @@ class ConceptSHAP:
                     df_per_concept_combination["Concept_Indexes"].apply(lambda x: i not in x)
                 ]["Cosine_Similarity"].values
             )
-            shapley_values[concept + "_" + str(self.indices[i])] = with_concept - without_concept
+            scores[concept + "_" + str(self.indices[i])] = with_concept - without_concept
 
-        print("Shapley Values: ", shapley_values)
-        shapley_values = normalize_shapley_values(shapley_values)
-        print("Normalized Shapley Values: ", shapley_values)
+        print("Shapley Values: ", scores)
+        scores = normalize_scores(scores)
+        print("Normalized Shapley Values: ", scores)
         
         for i, word in enumerate(self.words, start=0):
             if i not in self.indices:
-                shapley_values[word + "_" + str(i)] = np.float32(0.0)
+                scores[word + "_" + str(i)] = np.float32(0.0)
         
-        shapley_values = {k: v for k, v in sorted(shapley_values.items(), key=lambda x: int(x[0].split('_')[1]))}
+        scores = {k: v for k, v in sorted(scores.items(), key=lambda x: int(x[0].split('_')[1]))}
 
-        return shapley_values
+        return scores
 
     def analyze(self, prompt, baseline=None, sampling_ratio=0.0, print_highlight_text=False, **kwargs):
         # Clean the prompt to prevent empty tokens
@@ -177,12 +167,12 @@ class ConceptSHAP:
         concept_combinations_results = self._get_result_per_concept_combination(sampling_ratio)
         df_per_concept_combination = self._get_df_per_concept_combination(concept_combinations_results, self.baseline_text)
         print("DF per Concept Combination: ", df_per_concept_combination["Cosine_Similarity"])
-        self.shapley_values = self._calculate_shapley_values(df_per_concept_combination)
-        print("ConceptSHAP values: ", self.shapley_values)
+        self.scores = self._calculate_scores(df_per_concept_combination)
+        print("ConceptSHAP values: ", self.scores)
         if print_highlight_text:
             self.highlight_text_background()
 
-        return self.shapley_values
+        return self.scores
     
     def __call__(self, prompts, baseline=None, **kwargs):
         scores = []

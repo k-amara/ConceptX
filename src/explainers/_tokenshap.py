@@ -9,7 +9,7 @@ from typing import Optional
 from explainers._explainer import Explainer
 from explainers._splitter import Splitter
 from explainers._vectorizer import TextVectorizer
-from explainers._explain_utils import normalize_scores
+from explainers._explain_utils import normalize_explanation
 
 # Refactored TokenSHAP class
 class TokenSHAP(Explainer):
@@ -124,7 +124,7 @@ class TokenSHAP(Explainer):
 
         samples = self.splitter.split(prompt)
         n = len(samples)
-        scores = {}
+        explanation = {}
 
         for i, sample in enumerate(samples, start=0): ## changes to source code (start=1 --> start=0)
             with_sample = np.average(
@@ -138,9 +138,9 @@ class TokenSHAP(Explainer):
                 ]["Cosine_Similarity"].values
             )
 
-            scores[sample + "_" + str(i)] = with_sample - without_sample
+            explanation[sample + "_" + str(i)] = with_sample - without_sample
 
-        return normalize_scores(scores)
+        return normalize_explanation(explanation)
 
     def analyze(self, prompt, print_highlight_text=True):
         # Clean the prompt to prevent empty tokens
@@ -154,10 +154,10 @@ class TokenSHAP(Explainer):
         df_per_token_combination = self._get_df_per_token_combination(
             token_combinations_results, self.baseline_text
         )
-        self.scores = self._calculate_shapley_values(
+        self.explanation = self._calculate_shapley_values(
             df_per_token_combination, prompt_cleaned
         )
         if print_highlight_text:
             self.highlight_text_background()
 
-        return self.scores
+        return self.explanation

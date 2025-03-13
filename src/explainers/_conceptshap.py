@@ -9,7 +9,7 @@ from typing import Optional, Any
 from explainers._explainer import Explainer
 from explainers._splitter import ConceptSplitter
 from explainers._vectorizer import TextVectorizer
-from explainers._explain_utils import normalize_scores
+from explainers._explain_utils import normalize_explanation
 
 
 class ConceptSHAP(Explainer):
@@ -122,8 +122,8 @@ class ConceptSHAP(Explainer):
 
         return df
 
-    def _calculate_scores(self, df_per_concept_combination):
-        scores = {}
+    def _calculate_explanation(self, df_per_concept_combination):
+        explanation = {}
 
         for i, concept in enumerate(self.concepts, start=0):
             with_concept = np.average(
@@ -136,19 +136,19 @@ class ConceptSHAP(Explainer):
                     df_per_concept_combination["Concept_Indexes"].apply(lambda x: i not in x)
                 ]["Cosine_Similarity"].values
             )
-            scores[concept + "_" + str(self.indices[i])] = with_concept - without_concept
+            explanation[concept + "_" + str(self.indices[i])] = with_concept - without_concept
 
-        print("Shapley Values: ", scores)
-        scores = normalize_scores(scores)
-        print("Normalized Shapley Values: ", scores)
+        print("Importance explanation: ", explanation)
+        explanation = normalize_explanation(explanation)
+        print("Normalized Importance explanation: ", explanation)
         
         for i, word in enumerate(self.words, start=0):
             if i not in self.indices:
-                scores[word + "_" + str(i)] = np.float32(-1.0)
+                explanation[word + "_" + str(i)] = np.float32(-1.0)
         
-        scores = {k: v for k, v in sorted(scores.items(), key=lambda x: int(x[0].split('_')[1]))}
+        explanation = {k: v for k, v in sorted(explanation.items(), key=lambda x: int(x[0].split('_')[1]))}
 
-        return scores
+        return explanation
 
     def analyze(self, prompt, baseline=None, print_highlight_text=True, **kwargs):
         # Clean the prompt to prevent empty tokens
@@ -170,22 +170,22 @@ class ConceptSHAP(Explainer):
         concept_combinations_results = self._get_result_per_concept_combination()
         df_per_concept_combination = self._get_df_per_concept_combination(concept_combinations_results, self.baseline_text)
         print("DF per Concept Combination: ", df_per_concept_combination["Cosine_Similarity"])
-        self.scores = self._calculate_scores(df_per_concept_combination)
-        print("ConceptSHAP values: ", self.scores)
+        self.explanation = self._calculate_explanation(df_per_concept_combination)
+        print("ConceptSHAP values: ", self.explanation)
         if print_highlight_text:
             self.highlight_text_background()
 
-        return self.scores
+        return self.explanation
     
     def __call__(self, prompts, baseline=None, **kwargs):
-        scores = []
+        explanation = []
         reference_texts = kwargs.get("reference_texts", None) if baseline == "reference" else None
         
         for i, prompt in enumerate(prompts):
             reference_text = reference_texts[i] if reference_texts else None
-            scores.append(self.analyze(prompt, baseline, reference_text=reference_text))
+            explanation.append(self.analyze(prompt, baseline, reference_text=reference_text))
         
-        return scores
+        return explanation
     
     def _get_baseline_text(self, prompt_cleaned: str, baseline: Optional[str], **kwargs: Any) -> str:
         """Determines the baseline text based on the given option."""

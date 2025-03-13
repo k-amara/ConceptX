@@ -12,17 +12,17 @@ class Random(Explainer):
 
     def analyze(self, prompt):
         tokens = self.splitter.split(prompt)
-        random_scores = {f"{token}_{i}": random.random() for i, token in enumerate(tokens)}
+        random_explanation = {f"{token}_{i}": random.random() for i, token in enumerate(tokens)}
         
-        # Normalize scores
-        min_value = min(random_scores.values())
-        max_value = max(random_scores.values())
-        self.scores = {
+        # Normalize explanation
+        min_value = min(random_explanation.values())
+        max_value = max(random_explanation.values())
+        self.explanation = {
             token_key: (score - min_value) / (max_value - min_value)
-            for token_key, score in random_scores.items()
+            for token_key, score in random_explanation.items()
         }
-        print("Random token scores:", self.scores)
-        return self.scores
+        print("Random token explanation:", self.explanation)
+        return self.explanation
 
 
 class SVSampling(Explainer):
@@ -37,9 +37,9 @@ class SVSampling(Explainer):
         # Is the target in 
         # Compute Shapley values
         attr = self.sv.attribute(tokens, target=target)
-        self.scores = {f"{token}_{i}": score.item() for i, (token, score) in enumerate(zip(tokens, attr))}
-        print("SVSampling token scores:", self.scores)
-        return self.scores
+        self.explanation = {f"{token}_{i}": score.item() for i, (token, score) in enumerate(zip(tokens, attr))}
+        print("SVSampling token explanation:", self.explanation)
+        return self.explanation
 
 
 class FeatAblation(Explainer):
@@ -54,6 +54,6 @@ class FeatAblation(Explainer):
         # Is the target in 
         # Compute Shapley values
         attr = self.fa.attribute(tokens, target=target)
-        self.scores = {f"{token}_{i}": score.item() for i, (token, score) in enumerate(zip(tokens, attr))}
-        print("FeatAblation token scores:", self.scores)
-        return self.scores
+        self.explanation = {f"{token}_{i}": score.item() for i, (token, score) in enumerate(zip(tokens, attr))}
+        print("FeatAblation token explanation:", self.explanation)
+        return self.explanation

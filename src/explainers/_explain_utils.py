@@ -96,9 +96,9 @@ def interact_with_ollama(
 def get_text_before_last_underscore(token):
     return token.rsplit('_', 1)[0]
 
-def normalize_scores(scores, power=1):
-    min_value = min(scores.values())
-    shifted_values = {k: v - min_value for k, v in scores.items()}
+def normalize_explanation(explanation, power=1):
+    min_value = min(explanation.values())
+    shifted_values = {k: v - min_value for k, v in explanation.items()}
     powered_values = {k: v ** power for k, v in shifted_values.items()}
     total = sum(powered_values.values())
     if total == 0:

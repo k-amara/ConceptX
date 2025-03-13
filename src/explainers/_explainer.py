@@ -32,15 +32,15 @@ class Explainer:
         raise NotImplementedError("Subclasses must implement the analyze method")
 
     def __call__(self, prompts, *args, **kwargs):
-        scores = []
+        explanation = []
         for prompt in prompts:
-            scores.append(self.analyze(prompt, *args, **kwargs))
-        return scores
+            explanation.append(self.analyze(prompt, *args, **kwargs))
+        return explanation
 
     def print_colored_text(self):
-        scores = self.scores
-        min_value = min(scores.values())
-        max_value = max(scores.values())
+        explanation = self.explanation
+        min_value = min(explanation.values())
+        max_value = max(explanation.values())
 
         def get_color(value):
             norm_value = (value - min_value) / (max_value - min_value)
@@ -56,7 +56,7 @@ class Explainer:
 
             return '#{:02x}{:02x}{:02x}'.format(r, g, b)
 
-        for token, value in scores.items():
+        for token, value in explanation.items():
             color = get_color(value)
             print(
                 f"\033[38;2;{int(color[1:3], 16)};"
@@ -67,15 +67,15 @@ class Explainer:
             )
         print()
 
-    def _get_color(self, value, scores):
-        norm_value = (value - min(scores.values())) / (
-            max(scores.values()) - min(scores.values())
+    def _get_color(self, value, explanation):
+        norm_value = (value - min(explanation.values())) / (
+            max(explanation.values()) - min(explanation.values())
         )
         cmap = plt.cm.coolwarm
         return colors.rgb2hex(cmap(norm_value))
 
     def plot_colored_text(self, new_line=False):
-        num_items = len(self.scores)
+        num_items = len(self.explanation)
         fig_height = num_items * 0.5 + 1 if new_line else 2
 
         fig, ax = plt.subplots(figsize=(10, fig_height))
@@ -85,8 +85,8 @@ class Explainer:
         x_pos = 0.1
         step = 1 / (num_items + 1)
 
-        for sample, value in self.scores.items():
-            color = self._get_color(value, self.scores)
+        for sample, value in self.explanation.items():
+            color = self._get_color(value, self.explanation)
             if new_line:
                 ax.text(
                     0.5, y_pos, get_text_before_last_underscore(sample), color=color, fontsize=20,
@@ -103,21 +103,21 @@ class Explainer:
         sm = plt.cm.ScalarMappable(
             cmap=plt.cm.coolwarm,
             norm=plt.Normalize(
-                vmin=min(self.scores.values()),
-                vmax=max(self.scores.values())
+                vmin=min(self.explanation.values()),
+                vmax=max(self.explanation.values())
             )
         )
         sm.set_array([])
         cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05)
         cbar.ax.set_position([0.05, 0.02, 0.9, 0.05])
-        cbar.set_label('Scores', fontsize=12)
+        cbar.set_label('explanation', fontsize=12)
 
         plt.tight_layout()
         plt.show()
 
     def highlight_text_background(self):
-        min_value = min(self.scores.values())
-        max_value = max(self.scores.values())
+        min_value = min(self.explanation.values())
+        max_value = max(self.explanation.values())
 
         def get_background_color(value):
             norm_value = ((value - min_value) / (max_value - min_value)) ** 3
@@ -126,7 +126,7 @@ class Explainer:
             b = int(255 - (norm_value * 255))
             return f"\033[48;2;{r};{g};{b}m"
 
-        for token, value in self.scores.items():
+        for token, value in self.explanation.items():
             background_color = get_background_color(value)
             reset_color = "\033[0m"
             print(f"{background_color}{get_text_before_last_underscore(token)}{reset_color}", end=' ')

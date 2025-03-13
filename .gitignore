@@ -133,9 +133,11 @@ dmypy.json
 .pyre/
 
 # folder
-shapenv/
 .vscode/
 .git/
 clutils/
+config/
+figures/
+results/
 
 *.sh

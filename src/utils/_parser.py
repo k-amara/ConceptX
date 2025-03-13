@@ -9,7 +9,7 @@ from transformers import set_seed
 #
 
 CKPT_ROOT = "/cluster/home/kamara/conceptx/"
-STORAGE = "/cluster/work/ilic/kamara/conceptx/"
+STORAGE = "/cluster/scratch/kamara/conceptx/"
 #CKPT_ROOT = "/Users/kenzaamara/GithubProjects/conceptx/"
 #STORAGE = "/Users/kenzaamara/GithubProjects/conceptx/"
 DATA_DIR = CKPT_ROOT + "data/"
@@ -71,7 +71,6 @@ def arg_parse():
         "--model_name",
         default=None,
         type=str,
-        required=True,
         help="Model type selected in the list of model classes",
     )
     parser.add_argument("--length", type=int, default=100)
@@ -114,7 +113,6 @@ def arg_parse():
         "--dataset",
         default=None,
         type=str,
-        required=True,
         help="Dataset of intructions selected in the list of datasets (alpaca, genderbias, sentiment)",
     )
     
@@ -125,7 +123,6 @@ def arg_parse():
         "--explainer",
         default=None,
         type=str,
-        required=True,
         help="Explainer type selected in the list of explainer classes (random, tokenshap, conceptshap)",
     )
     
@@ -137,6 +134,16 @@ def arg_parse():
         help="Vectorizer type selected in the list of explainer classes (huggingface, openai, tfidf)",
     )
     
+    
+    
+    ### Evaluation
+    
+    parser.add_argument(
+        "--masking_method",
+        default="random",
+        type=str,
+        help="Masking strategy when evaluating faithfulness (random, ellipsis)",
+    )
     
     args, unknown = parser.parse_known_args()
     return parser, args

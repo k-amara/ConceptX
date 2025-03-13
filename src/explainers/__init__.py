@@ -31,7 +31,7 @@ from ._conceptshap import (
 
 from ._explain_utils import (
     get_text_before_last_underscore,
-    normalize_scores
+    normalize_explanation
 )
 
 
@@ -50,5 +50,5 @@ __all__ = [
     "ConceptSplitter",
     "ConceptSHAP",
     "get_text_before_last_underscore",
-    "normalize_scores"
+    "normalize_explanation"
 ]

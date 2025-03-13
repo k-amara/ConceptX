@@ -1,7 +1,16 @@
 import os
 import pandas as pd
+import pickle as pkl
 from datasets import load_dataset
 from explainers._vectorizer import TextVectorizer, HuggingFaceEmbeddings, OpenAIEmbeddings, TfidfTextVectorizer
+
+def get_path(args, folder_name, type="pkl"):
+    save_dir = os.path.join(args.result_save_dir, f'{folder_name}/{args.model_name}/{args.dataset}/{args.explainer}/seed_{args.seed}')
+    os.makedirs(save_dir, exist_ok=True)
+    filename = f"{folder_name}_"
+    filename += f"batch_{args.num_batch}_" if args.num_batch is not None else ""
+    filename += f"{args.dataset}_{args.model_name}_{args.explainer}_{args.seed}.{type}"
+    return os.path.join(save_dir, filename)
 
 
 def load_vectorizer(vectorizer_name: str, **kwargs) -> TextVectorizer:
@@ -46,3 +55,12 @@ def load_data(args):
         raise ValueError("Unknown dataset type passed: %s!" % args.dataset_name)
     
   ## final dataset df.columns ['id', 'instruction', 'reference_text']
+  
+  
+def load_pkl(args, folder_name):
+    # Load explanations from the specified path
+    explanations_path = get_path(args, folder_name)
+    with open(explanations_path, "rb") as f:
+        explanations = pkl.load(f)
+    df_explanations = pd.DataFrame(explanations)
+    return df_explanations

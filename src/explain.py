@@ -1,12 +1,9 @@
-import os
 from explainers import *
-from utils import load_vectorizer
-import os
 import pickle as pkl
 
 from model import Model
 from explainers import *
-from utils import arg_parse,load_data, load_vectorizer, save_pkl_path
+from utils import arg_parse, load_data, load_vectorizer, get_path
 from accelerate.utils import set_seed
 
 
@@ -23,8 +20,6 @@ def compute_explanations(args, save=True):
     print(df.head())
     instructions = df['instruction'].tolist()[:3]
     ids = df["id"].tolist()[:3]
-    
-    vectorizer = load_vectorizer(args.vectorizer)
     
     # Choose appropriate explainer based on specified explainer
     if args.explainer == "random":
@@ -51,14 +46,14 @@ def compute_explanations(args, save=True):
     # save scores into args.results_dir
     
     if save:
-        save_path = save_pkl_path(args, folder_name="explanations")
+        explanations_path = get_path(args, folder_name="explanations")
         # Store in a dictionary
         explanations_dict = {
-            "instructions": instructions,
+            "instruction": instructions,
             "id": ids,
-            "explanations": explanations
+            "explanation": explanations
         }
-        with open(save_path, "wb") as f:
+        with open(explanations_path, "wb") as f:
             pkl.dump(explanations_dict, f)
     
     return explanations

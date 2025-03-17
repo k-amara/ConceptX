@@ -64,6 +64,10 @@ def arg_parse():
         "--num_batch", type=int, default=None
     )
     
+    parser.add_argument(
+        "--file_type", type=str, default="csv"
+    )
+    
     
     ### Language Model Parameters
     parser.add_argument(

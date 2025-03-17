@@ -23,9 +23,9 @@ def compute_acc_metrics(df):
     results = []
     for _, row in df.iterrows():
         entry = {"id": row["id"], "instruction": row["instruction"], "explanation": row["explanation"]}
-        rank_dict = get_explanation_ranks(row["explanation"])
-        entry["label_rank"] = rank_dict.get(row["gender"], None)
-        entry["difference"] = top_explanation_difference(row["explanation"])
+        rank_dict = get_explanation_ranks(eval(row["explanation"]))
+        entry["label_rank"] = rank_dict.get(row["label"], None)
+        entry["difference"] = top_explanation_difference(eval(row["explanation"]))
         results.append(entry)
     
     return pd.DataFrame(results)

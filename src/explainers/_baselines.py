@@ -3,12 +3,15 @@ import random
 from captum.attr import (
     ShapleyValueSampling,
     FeatureAblation,
+    LLMAttribution, 
+    TextTokenInput,
 )
+from explainers._explain_utils import normalize_explanation
 
 
 class Random(Explainer):
-    def __init__(self, model, splitter, vectorizer=None, debug=False):
-        super().__init__(model, splitter, vectorizer, debug)
+    def __init__(self, llm, splitter, vectorizer=None, debug=False):
+        super().__init__(llm, splitter, vectorizer, debug)
 
     def analyze(self, prompt):
         tokens = self.splitter.split(prompt)
@@ -26,34 +29,49 @@ class Random(Explainer):
 
 
 class SVSampling(Explainer):
-    def __init__(self, model, splitter, vectorizer=None, debug=False):
-        super().__init__(model, splitter, vectorizer, debug)
-        self.sv = ShapleyValueSampling(self.model) 
+    def __init__(self, llm, splitter, vectorizer=None, debug=False):
+        super().__init__(llm, splitter, vectorizer, debug)
+        self.tokenizer = self.llm.tokenizer
+        sv = ShapleyValueSampling(self.llm.model) 
+        self.llm_attr = LLMAttribution(sv, self.tokenizer)
     
     def analyze(self, prompt):
-        tokens = self.splitter.split(prompt)
+        skip_tokens = [1]  # skip the special token for the start of the text <s>
+        inp = TextTokenInput(
+            prompt, 
+            self.tokenizer,
+            skip_tokens=skip_tokens,
+        )
         target = self._calculate_baseline(prompt)
         print("Target:", target)
-        # Is the target in 
-        # Compute Shapley values
-        attr = self.sv.attribute(tokens, target=target)
-        self.explanation = {f"{token}_{i}": score.item() for i, (token, score) in enumerate(zip(tokens, attr))}
+        attr_res = self.llm_attr.attribute(inp, target=target)
+        attr = attr_res.seq_attr
+        self.explanation = {f"{token}_{i}": score.item() for i, (token, score) in enumerate(zip(inp.values, attr))}
         print("SVSampling token explanation:", self.explanation)
-        return self.explanation
+        return normalize_explanation(self.explanation)
+
 
 
 class FeatAblation(Explainer):
-    def __init__(self, model, splitter, vectorizer=None, debug=False):
-        super().__init__(model, splitter, vectorizer, debug)
-        self.fa = FeatureAblation(self.model) 
+    def __init__(self, llm, splitter, vectorizer=None, debug=False):
+        super().__init__(llm, splitter, vectorizer, debug)
+        self.tokenizer = self.llm.tokenizer
+        fa = FeatureAblation(self.llm.model) 
+        self.llm_attr = LLMAttribution(fa, self.tokenizer)
     
     def analyze(self, prompt):
-        tokens = self.splitter.split(prompt)
+        skip_tokens = [1]  # skip the special token for the start of the text <s>
+        inp = TextTokenInput(
+            prompt, 
+            self.tokenizer,
+            skip_tokens=skip_tokens,
+        )
         target = self._calculate_baseline(prompt)
         print("Target:", target)
         # Is the target in 
         # Compute Shapley values
-        attr = self.fa.attribute(tokens, target=target)
-        self.explanation = {f"{token}_{i}": score.item() for i, (token, score) in enumerate(zip(tokens, attr))}
+        attr_res = self.llm_attr.attribute(inp, target=target)
+        attr = attr_res.seq_attr
+        self.explanation = {f"{token}_{i}": score.item() for i, (token, score) in enumerate(zip(inp.values, attr))}
         print("FeatAblation token explanation:", self.explanation)
-        return self.explanation
+        return normalize_explanation(self.explanation)

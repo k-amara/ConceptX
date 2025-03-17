@@ -2,9 +2,9 @@ import pandas as pd
 import numpy as np
 import random
 
-from model import Model
+from model import LLMPipeline, LLMAPI
 from explainers import *
-from utils import arg_parse, load_pkl, load_vectorizer, get_path
+from utils import arg_parse, load_file, save_dataframe, load_vectorizer
 from accelerate.utils import set_seed
 import requests
 
@@ -43,17 +43,17 @@ def evaluate_similarity(original_response, new_response, vectorizer):
     return cosine_similarity
 
 
-def process_dataframe(df, model, vectorizer, thresholds=np.arange(0, 1.1, 0.1), method="random"):
+def process_dataframe(df, llm, vectorizer, thresholds=np.arange(0, 1.1, 0.1), method="random"):
     """Process dataframe to compute faithfulness scores across thresholds."""
     results = []
     for _, row in df.iterrows():
         entry = {"id": row["id"], "instruction": row["instruction"], "explanation": row["explanation"]}
-        original_response = model.generate(row["instruction"])
+        original_response = llm.generate(row["instruction"])
         
         for k in thresholds:
             masked_dict = mask_tokens(row["explanation"], k)
             new_instruction = transform_tokens(masked_dict, method)
-            new_response = model.generate(new_instruction)
+            new_response = llm.generate(new_instruction)
             similarity = evaluate_similarity(original_response, new_response, vectorizer)
             entry[f"sim_{k:.1f}"] = similarity
         results.append(entry)
@@ -65,17 +65,16 @@ def eval_faithfulness(args, save=True):
     if args.seed is not None:
         set_seed(args.seed)
         
-    model = Model(args)
+    api_required = True if args.model_name in ["gpt4", "deepseek"] else False 
+    llm = LLMAPI(args) if api_required else LLMPipeline(args)
     vectorizer = load_vectorizer(args.vectorizer)
     
-    df_explanations = load_pkl(args, folder_name="explanations")
+    df_explanations = load_file(args, folder_name="explanations")
     print(df_explanations.head())
-    faithfulness_df = process_dataframe(df_explanations, model, vectorizer, method=args.masking_method)
+    faithfulness_df = process_dataframe(df_explanations, llm, vectorizer, method=args.masking_method)
     print("Faithfulness Scores", faithfulness_df.head())
     if save:
-        faitfulness_path = get_path(args, folder_name="faithfulness", type="pkl")
-        faithfulness_df.to_pickle(faitfulness_path)
-        
+        save_dataframe(faithfulness_df, args, folder_name="faithfulness")
 
 if __name__=="__main__":
     parser, args = arg_parse()

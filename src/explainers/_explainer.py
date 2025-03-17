@@ -1,6 +1,7 @@
 #from token_shap import *
 import matplotlib.pyplot as plt
 from matplotlib import colors
+import pandas as pd
 
 from explainers._explain_utils import get_text_before_last_underscore
 from explainers._splitter import Splitter
@@ -10,11 +11,11 @@ from typing import Optional
 # Refactored TokenSHAP class
 class Explainer:
     def __init__(self, 
-                 model, 
+                 llm, 
                  splitter: Splitter, 
                  vectorizer: Optional[TextVectorizer] = None,
                  debug: bool = False):
-        self.model = model
+        self.llm = llm
         self.splitter = splitter
         self.vectorizer = vectorizer or TfidfTextVectorizer()
         self.debug = debug  # Add debug mode
@@ -24,8 +25,7 @@ class Explainer:
             print(message)
 
     def _calculate_baseline(self, prompt):
-        baseline_text = self.model.generate(prompt)
-        print("Baseline text:", baseline_text)
+        baseline_text = self.llm.generate(prompt)
         return baseline_text
     
     def analyze(self, *args, **kwargs):
@@ -120,6 +120,8 @@ class Explainer:
         max_value = max(self.explanation.values())
 
         def get_background_color(value):
+            if pd.isna(value):  # Check for NaN values
+                value = 0  # Assign a default value (e.g., 0 for minimum intensity)
             norm_value = ((value - min_value) / (max_value - min_value)) ** 3
             r = 255
             g = 255

@@ -14,12 +14,12 @@ from explainers._explain_utils import normalize_explanation
 
 class ConceptSHAP(Explainer):
     def __init__(self, 
-                 model, 
+                 llm, 
                  splitter: ConceptSplitter, 
                  vectorizer: Optional[TextVectorizer] = None,
                  debug: bool = False,
                  sampling_ratio: float = 0.0):
-        super().__init__(model, splitter, vectorizer, debug)
+        super().__init__(llm, splitter, vectorizer, debug)
         self.sampling_ratio = sampling_ratio
 
     def _generate_random_combinations(self, samples, k, exclude_combinations_set):
@@ -63,8 +63,9 @@ class ConceptSHAP(Explainer):
 
         self._debug_print(f"Number of essential combinations (each missing one concept): {len(essential_combinations)}")
 
-        num_additional_concepts = max(0, num_sampled_combinations - len(essential_combinations))
-        self._debug_print(f"Number of additional combinations to sample: {num_additional_concepts}")
+        # Compute the number of additional combinations (capped at 30)
+        num_additional_concepts = min(30, max(0, num_sampled_combinations - len(essential_combinations)))
+        self._debug_print(f"Number of additional combinations to sample (capped at 30): {num_additional_concepts}")
 
         sampled_combinations = []
         if num_additional_concepts > 0:
@@ -90,7 +91,7 @@ class ConceptSHAP(Explainer):
             self._debug_print(f"Concept indexes: {indexes}")
             self._debug_print(f"Generated text: {text}")
 
-            text_response = self.model.generate(text)
+            text_response = self.llm.generate(text)
             self._debug_print(f"Received response for combination {idx + 1}")
 
             prompt_key = text + '_' + ','.join(str(index) for index in indexes)
@@ -150,13 +151,19 @@ class ConceptSHAP(Explainer):
 
         return explanation
 
-    def analyze(self, prompt, baseline=None, print_highlight_text=True, **kwargs):
+    def analyze(self, prompt, baseline=None, print_highlight_text=False, **kwargs):
         # Clean the prompt to prevent empty tokens
         prompt_cleaned = prompt.strip()
         prompt_cleaned = re.sub(r'\s+', ' ', prompt_cleaned)
         
         self.words = self.splitter.split(prompt_cleaned)
         self.concepts, self.indices = self.splitter.split_concepts(prompt_cleaned) # concepts are the samples in TokenSHAP
+        
+        # Skip processing if there is 1 or fewer concepts
+        if len(self.concepts) <= 1:
+            print("Skipping prompt due to insufficient concepts.")
+            return None
+        
         self.replacements = self.splitter.get_replacements(self.concepts, prompt_cleaned)
         
         print("Words: ", self.words)
@@ -164,12 +171,11 @@ class ConceptSHAP(Explainer):
         print("Indices: ", self.indices)
         print("Replacements: ", self.replacements)
         
-        self.baseline_text = self._get_baseline_text(prompt_cleaned, baseline, **kwargs)
-        print(f"Baseline Text: {self.baseline_text}")
+        self.baseline_text = baseline if baseline is not None else self._calculate_baseline(prompt_cleaned)
+        print(f"Baseline Text: {self.baseline_text}") 
 
         concept_combinations_results = self._get_result_per_concept_combination()
         df_per_concept_combination = self._get_df_per_concept_combination(concept_combinations_results, self.baseline_text)
-        print("DF per Concept Combination: ", df_per_concept_combination["Cosine_Similarity"])
         self.explanation = self._calculate_explanation(df_per_concept_combination)
         print("ConceptSHAP values: ", self.explanation)
         if print_highlight_text:
@@ -177,25 +183,18 @@ class ConceptSHAP(Explainer):
 
         return self.explanation
     
-    def __call__(self, prompts, baseline=None, **kwargs):
+    def __call__(self, prompts, **kwargs):
         explanation = []
-        reference_texts = kwargs.get("reference_texts", None) if baseline == "reference" else None
+        baseline_texts = kwargs.get("baseline_texts", None)
         
         for i, prompt in enumerate(prompts):
-            reference_text = reference_texts[i] if reference_texts else None
-            explanation.append(self.analyze(prompt, baseline, reference_text=reference_text))
-        
+            baseline_text = baseline_texts[i] if baseline_texts else None
+            
+            exp = self.analyze(prompt, baseline=baseline_text)
+            if exp is not None:
+                explanation.append(exp)
+            
         return explanation
     
-    def _get_baseline_text(self, prompt_cleaned: str, baseline: Optional[str], **kwargs: Any) -> str:
-        """Determines the baseline text based on the given option."""
-        if baseline is None:
-            return self._calculate_baseline(prompt_cleaned)
-        if baseline == "concept":
-            baseline_text, _ = self.splitter.get_main_concept(self._calculate_baseline(prompt_cleaned))
-            print(f"Response Dominant Topic: {baseline_text}")
-            return baseline_text
-        if baseline == "reference":
-            return kwargs.get("reference_text", "")
-
-        raise ValueError(f"Invalid baseline option: {baseline}")
+# baseline_text, _ = self.splitter.get_main_concept(self._calculate_baseline(prompt_cleaned))
+            

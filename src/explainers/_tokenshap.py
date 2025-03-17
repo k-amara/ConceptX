@@ -14,12 +14,12 @@ from explainers._explain_utils import normalize_explanation
 # Refactored TokenSHAP class
 class TokenSHAP(Explainer):
     def __init__(self, 
-                 model, 
+                 llm, 
                  splitter: Splitter, 
                  vectorizer: Optional[TextVectorizer] = None,
                  debug: bool = False, 
                  sampling_ratio: float = 0.0):
-        super().__init__(model, splitter, vectorizer, debug)
+        super().__init__(llm, splitter, vectorizer, debug)
         self.sampling_ratio = sampling_ratio
 
     def _generate_random_combinations(self, samples, k, exclude_combinations_set):
@@ -64,8 +64,8 @@ class TokenSHAP(Explainer):
 
         self._debug_print(f"Number of essential combinations (each missing one token): {len(essential_combinations)}")
 
-        num_additional_samples = max(0, num_sampled_combinations - len(essential_combinations))
-        self._debug_print(f"Number of additional combinations to sample: {num_additional_samples}")
+        num_additional_samples = min(30, max(0, num_sampled_combinations - len(essential_combinations)))
+        self._debug_print(f"Number of additional combinations to sample (capped at 30): {num_additional_samples}")
 
         sampled_combinations = []
         if num_additional_samples > 0:
@@ -88,7 +88,7 @@ class TokenSHAP(Explainer):
             self._debug_print(f"Token indexes: {indexes}")
             self._debug_print(f"Generated text: {text}")
 
-            text_response = self.model.generate(text)
+            text_response = self.llm.generate(text)
             self._debug_print(f"Received response for combination {idx + 1}")
 
             prompt_key = text + '_' + ','.join(str(index) for index in indexes)

@@ -37,6 +37,7 @@ from transformers import (
     GenerationMixin,
     GPT2LMHeadModel,
     GPT2Tokenizer,
+    GPT2TokenizerFast,
     GPTJForCausalLM,
     LlamaForCausalLM,
     LlamaTokenizer,
@@ -49,9 +50,15 @@ from transformers import (
     XLMWithLMHeadModel,
     XLNetLMHeadModel,
     XLNetTokenizer,
+    BitsAndBytesConfig,
+    pipeline
 )
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from huggingface_hub import login
+
+from openai import OpenAI
+from deepseek_tokenizer import ds_token as DSTokenizer
+
 
 # Step 1: Log in to Hugging Face using your access token
 login(token=os.getenv("HF_TOKEN"))
@@ -82,7 +89,14 @@ MODEL_CLASSES = {
 MODEL_IDENTIFIER = {
     "gpt2": "gpt2",
     "xlnet": "xlnet-base-cased",
-    "llama": "meta-llama/Llama-3.2-3B-Instruct"
+    "llama-2-7b": "meta-llama/Llama-2-7b-hf",
+    "llama-3-3b": "meta-llama/Llama-3.2-3B"
+}
+
+# Set quantization configuration based on the user's input
+quantization_map = {
+    "8bit": BitsAndBytesConfig(load_in_8bit=True),
+    "4bit": BitsAndBytesConfig(load_in_4bit=True)
 }
 
 # Padding text to help Transformer-XL and XLNet with short prompts as proposed by Aman Rusia
@@ -295,7 +309,7 @@ class _ModelFallbackWrapper(GenerationMixin):
 
 
 
-class Model:
+class LLMPipeline:
     def __init__(self, args):
         self.args = args
         
@@ -307,113 +321,200 @@ class Model:
         if args.seed is not None:
             set_seed(args.seed)
 
-        # Initialize the model and tokenizer
-        try:
-            args.model_name = args.model_name.lower()
-            model_class, tokenizer_class = MODEL_CLASSES[args.model_name]
-        except KeyError:
-            raise KeyError("the model {} you specified is not supported. You are welcome to add it and open a PR :)")
 
-        self.tokenizer = tokenizer_class.from_pretrained(MODEL_IDENTIFIER[args.model_name])
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = model_class.from_pretrained(MODEL_IDENTIFIER[args.model_name], attn_implementation="sdpa")
-        self.model = torch.compile(self.model)
-        # Set the model to the right device
-        self.model.to(self.distributed_state.device)
+        self.args.model_name = args.model_name.lower()
 
-        if args.fp16:
-            self.model.half()
-        max_seq_length = getattr(self.model.config, "max_position_embeddings", 0)
-        self.args.length = adjust_length_to_model(args.length, max_sequence_length=max_seq_length)
-        logger.info(args)
-            
-        if args.jit:
-            jit_input_texts = ["enable jit"]
-            jit_inputs = prepare_jit_inputs(jit_input_texts, self.model, self.tokenizer)
-            torch._C._jit_set_texpr_fuser_enabled(False)
-            self.model.config.return_dict = False
-            if hasattr(self.model, "forward"):
-                sig = inspect.signature(self.model.forward)
+
+        # Check if the model is part of the Llama series
+        if "llama" in self.args.model_name.lower():
+            model_id = MODEL_IDENTIFIER[self.args.model_name]
+            self.pipe = pipeline(
+                "text-generation", 
+                model=model_id, 
+                tokenizer=model_id, 
+                torch_dtype=torch.bfloat16, 
+                device_map="auto"
+            )
+            self.model = self.pipe.model
+            self.tokenizer = self.pipe.tokenizer
+            self.is_llama = True
+        else:
+            self.is_llama = False
+            # Initialize the model and tokenizer
+            try:
+                model_class, tokenizer_class = MODEL_CLASSES[self.args.model_name]
+            except KeyError:
+                raise KeyError("the model {} you specified is not supported. You are welcome to add it and open a PR :)")
+
+            self.tokenizer = tokenizer_class.from_pretrained(MODEL_IDENTIFIER[self.args.model_name])
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+
+            # Select the quantization configuration based on the argument
+            quantization_config = quantization_map.get(args.quantization, None)
+
+            # Load the model with the appropriate configuration
+            if quantization_config:
+                self.model = model_class.from_pretrained(
+                    MODEL_IDENTIFIER[self.args.model_name], 
+                    attn_implementation="sdpa", 
+                    quantization_config=quantization_config
+                )
             else:
-                sig = inspect.signature(self.model.__call__)
-            jit_inputs = tuple(jit_inputs[key] for key in sig.parameters if jit_inputs.get(key, None) is not None)
-            traced_model = torch.jit.trace(self.model, jit_inputs, strict=False)
-            traced_model = torch.jit.freeze(traced_model.eval())
-            traced_model(*jit_inputs)
-            traced_model(*jit_inputs)
+                self.model = model_class.from_pretrained(
+                    MODEL_IDENTIFIER[self.args.model_name], 
+                    attn_implementation="sdpa"
+                )
+            
+            
+            self.model = torch.compile(self.model)
+            # Set the model to the right device
+            self.model.to(self.distributed_state.device)
 
-            self.model = _ModelFallbackWrapper(traced_model, self.model)
+            if args.fp16:
+                self.model.half()
+            max_seq_length = getattr(self.model.config, "max_position_embeddings", 0)
+            self.args.length = adjust_length_to_model(args.length, max_sequence_length=max_seq_length)
+            logger.info(args)
+                
+            if args.jit:
+                jit_input_texts = ["enable jit"]
+                jit_inputs = prepare_jit_inputs(jit_input_texts, self.model, self.tokenizer)
+                torch._C._jit_set_texpr_fuser_enabled(False)
+                self.model.config.return_dict = False
+                if hasattr(self.model, "forward"):
+                    sig = inspect.signature(self.model.forward)
+                else:
+                    sig = inspect.signature(self.model.__call__)
+                jit_inputs = tuple(jit_inputs[key] for key in sig.parameters if jit_inputs.get(key, None) is not None)
+                traced_model = torch.jit.trace(self.model, jit_inputs, strict=False)
+                traced_model = torch.jit.freeze(traced_model.eval())
+                traced_model(*jit_inputs)
+                traced_model(*jit_inputs)
+
+                self.model = _ModelFallbackWrapper(traced_model, self.model)
             
     def generate(self, prompt):
         prompt_text = prompt if prompt else input("Model prompt >>> ")
-
-        # Different models need different input formatting and/or extra arguments
-        requires_preprocessing = self.args.model_name in PREPROCESSING_FUNCTIONS.keys()
-        if requires_preprocessing:
-            prepare_input = PREPROCESSING_FUNCTIONS.get(args.model_name)
-            preprocessed_prompt_text = prepare_input(args, self.model, self.tokenizer, prompt_text)
-
-            if self.model.__class__.__name__ in ["TransfoXLLMHeadModel"]:
-                tokenizer_kwargs = {"add_space_before_punct_symbol": True}
-            else:
-                tokenizer_kwargs = {}
-
-            encoded_prompt = self.tokenizer.encode(
-                preprocessed_prompt_text, add_special_tokens=False, return_tensors="pt", **tokenizer_kwargs
+        
+        if self.is_llama:
+            # Use the pipeline directly for Llama models
+            outputs = self.pipe(
+                prompt_text, 
+                max_new_tokens=self.args.length, 
+                temperature=self.args.temperature,
+                top_k=self.args.k,
+                top_p=self.args.p,
+                repetition_penalty=self.args.repetition_penalty,
+                do_sample=True,
+                num_return_sequences=self.args.num_return_sequences,
+                return_full_text=False
             )
+            response = outputs[0]["generated_text"]
+
         else:
-            prefix = self.args.prefix if self.args.prefix else self.args.padding_text
-            encoded_prompt = self.tokenizer.encode(prefix + prompt_text, add_special_tokens=False, return_tensors="pt")
-        encoded_prompt = encoded_prompt.to(self.distributed_state.device)
+            # Different models need different input formatting and/or extra arguments
+            requires_preprocessing = self.args.model_name in PREPROCESSING_FUNCTIONS.keys()
+            if requires_preprocessing:
+                prepare_input = PREPROCESSING_FUNCTIONS.get(self.args.model_name)
+                preprocessed_prompt_text = prepare_input(self.args, self.model, self.tokenizer, prompt_text)
 
-        if encoded_prompt.size()[-1] == 0:
-            input_ids = None
-        else:
-            input_ids = encoded_prompt
+                if self.model.__class__.__name__ in ["TransfoXLLMHeadModel"]:
+                    tokenizer_kwargs = {"add_space_before_punct_symbol": True}
+                else:
+                    tokenizer_kwargs = {}
 
-        attention_mask = torch.ones_like(input_ids)
+                encoded_prompt = self.tokenizer.encode(
+                    preprocessed_prompt_text, add_special_tokens=False, return_tensors="pt", **tokenizer_kwargs
+                )
+            else:
+                prefix = self.args.prefix if self.args.prefix else self.args.padding_text
+                encoded_prompt = self.tokenizer.encode(prefix + prompt_text, add_special_tokens=False, return_tensors="pt")
+            encoded_prompt = encoded_prompt.to(self.distributed_state.device)
 
-        with torch.inference_mode():
-            output_sequences = self.model.generate(
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
-                    max_length=self.args.length + len(encoded_prompt[0]),
-                    temperature=self.args.temperature,
-                    top_k=self.args.k,
-                    top_p=self.args.p,
-                    repetition_penalty=self.args.repetition_penalty,
-                    do_sample=True,
-                    num_return_sequences=self.args.num_return_sequences,
+            if encoded_prompt.size()[-1] == 0:
+                input_ids = None
+            else:
+                input_ids = encoded_prompt
+
+            attention_mask = torch.ones_like(input_ids)
+
+            with torch.inference_mode():
+                output_sequences = self.model.generate(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                        max_length=self.args.length + len(encoded_prompt[0]),
+                        temperature=self.args.temperature,
+                        top_k=self.args.k,
+                        top_p=self.args.p,
+                        repetition_penalty=self.args.repetition_penalty,
+                        do_sample=True,
+                        num_return_sequences=self.args.num_return_sequences,
+                    )
+
+            # Remove the batch dimension when returning multiple sequences
+            if len(output_sequences.shape) > 2:
+                output_sequences.squeeze_()
+
+            generated_sequences = []
+            generated_responses = [] # We add responses only without repeting the prompt
+
+            for generated_sequence_idx, generated_sequence in enumerate(output_sequences):
+                print(f"=== GENERATED SEQUENCE {generated_sequence_idx + 1} ===")
+                generated_sequence = generated_sequence.tolist()
+
+                # Decode text
+                text = self.tokenizer.decode(generated_sequence, clean_up_tokenization_spaces=True)
+
+                # Remove all text after the stop token
+                text = text[: text.find(self.args.stop_token) if self.args.stop_token else None]
+                # Remove the excess text that was used for pre-processing
+                post_text = text[len(self.tokenizer.decode(encoded_prompt[0], clean_up_tokenization_spaces=True)) :]
+                # Add the prompt at the beginning of the sequence. 
+                total_sequence = (
+                    prompt_text + post_text
                 )
 
-        # Remove the batch dimension when returning multiple sequences
-        if len(output_sequences.shape) > 2:
-            output_sequences.squeeze_()
+                generated_sequences.append(total_sequence)
+                generated_responses.append(post_text)
+            response = generated_responses[0]
+        return response # Only return the first resopnse if num_sequenes>1
 
-        generated_sequences = []
-        generated_responses = [] # We add responses only without repeting the prompt
 
-        for generated_sequence_idx, generated_sequence in enumerate(output_sequences):
-            print(f"=== GENERATED SEQUENCE {generated_sequence_idx + 1} ===")
-            generated_sequence = generated_sequence.tolist()
+MODEL_API_CLASSES = {
+    "gpt4": ("OPENAI_API_KEY", "azure/gpt-4o", (GPT2TokenizerFast,"Xenova/gpt-4o"), "https://aikey-gateway.ivia.ch"),
+    "deepseek": ("DEEPSEEK_API_KEY", "deepseek-chat", DSTokenizer, "https://api.deepseek.com"),
+}
 
-            # Decode text
-            text = self.tokenizer.decode(generated_sequence, clean_up_tokenization_spaces=True)
 
-            # Remove all text after the stop token
-            text = text[: text.find(self.args.stop_token) if self.args.stop_token else None]
-            # Remove the excess text that was used for pre-processing
-            post_text = text[len(self.tokenizer.decode(encoded_prompt[0], clean_up_tokenization_spaces=True)) :]
-            # Add the prompt at the beginning of the sequence. 
-            total_sequence = (
-                prompt_text + post_text
+class LLMAPI:
+    def __init__(self, args):
+        self.args = args
+        self.args.model_name = args.model_name.lower()
+        self.api_key, self.model_id, tokenizer, self.base_url = MODEL_API_CLASSES[self.args.model_name]
+        
+        self.client = OpenAI(
+            api_key=os.getenv(self.api_key), 
+            base_url=self.base_url 
+        )
+
+        if isinstance(tokenizer, tuple) and len(tokenizer) == 2:
+            tokenizer = tokenizer[0].from_pretrained(tokenizer[1])
+        self.tokenizer = tokenizer
+
+    def generate(self, instruction):
+        prompt = f"""
+        Given the following instruction, provide an answer as direct advice. Do not use bullet points.
+        Instruction: "{instruction}"
+        Response:
+        """
+        response = self.client.chat.completions.create(
+                model=self.model_id,
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant"},
+                    {"role": "user", "content": prompt}
+                    ],
+                temperature=self.args.temperature,
+                stream=False
             )
-
-            generated_sequences.append(total_sequence)
-            generated_responses.append(post_text)
-            print(total_sequence)
-
-        return generated_responses[0] # Only return the first resopnse if num_sequenes>1
-
-
+        return response.choices[0].message.content

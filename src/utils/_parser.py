@@ -66,13 +66,13 @@ def arg_parse():
     
     
     ### Language Model Parameters
-    
     parser.add_argument(
         "--model_name",
         default=None,
         type=str,
         help="Model type selected in the list of model classes",
     )
+    parser.add_argument("--quantization", type=str, default=None, help="Quantization type (8bit, 4bit)")
     parser.add_argument("--length", type=int, default=100)
     parser.add_argument("--stop_token", type=str, default=None, help="Token at which text generation is stopped")
 
@@ -129,9 +129,16 @@ def arg_parse():
     
     parser.add_argument(
         "--vectorizer",
-        default=None,
+        default="huggingface",
         type=str,
         help="Vectorizer type selected in the list of explainer classes (huggingface, openai, tfidf)",
+    )
+    
+    parser.add_argument(
+        "--baseline",
+        default=None,
+        type=str,
+        help="The baseline for TokenSHAP and ConceptSHAP - None (LLM initial response), reference (reference text), concept (a concept target)",
     )
     
     

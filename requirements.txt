@@ -10,3 +10,5 @@ matplotlib
 scikit-learn
 captum
 sentence-transformers
+seaborn
+bitsandbytes

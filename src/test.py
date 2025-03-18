@@ -13,9 +13,8 @@ def test_model(args):
     if args.seed is not None:
         set_seed(args.seed)
     
-    api_required = True if args.model_name in ["gpt4", "deepseek"] else False 
-    rate_limit = True if args.model_name == "gpt4" else False
-    llm = LLMAPI(args, rate_limit_enabled=rate_limit) if api_required else LLMPipeline(args)
+    api_required = True if args.model_name in ["gpt4", "o1", "deepseek"] else False 
+    llm = LLMAPI(args,) if api_required else LLMPipeline(args)
     
     df = load_data(args)
     print(df.head())

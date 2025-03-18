@@ -10,6 +10,7 @@ from explainers._explainer import Explainer
 from explainers._splitter import ConceptSplitter
 from explainers._vectorizer import TextVectorizer
 from explainers._explain_utils import normalize_explanation
+from model import ContentPolicyViolationError
 
 
 class ConceptSHAP(Explainer):
@@ -91,8 +92,17 @@ class ConceptSHAP(Explainer):
             self._debug_print(f"Concept indexes: {indexes}")
             self._debug_print(f"Generated text: {text}")
 
-            text_response = self.llm.generate(text)
-            self._debug_print(f"Received response for combination {idx + 1}")
+            try:
+                text_response = self.llm.generate(text)
+                self._debug_print(f"Received response for combination {idx + 1}")
+
+                prompt_key = text + '_' + ','.join(str(index) for index in indexes)
+                prompt_responses[prompt_key] = (text_response, indexes)
+
+            except ContentPolicyViolationError:
+                self._debug_print(f"Skipping combination {idx + 1} due to content policy violation.")
+                continue  # Skip this combination and move to the next one
+
 
             prompt_key = text + '_' + ','.join(str(index) for index in indexes)
             prompt_responses[prompt_key] = (text_response, indexes)

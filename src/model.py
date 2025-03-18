@@ -489,6 +489,7 @@ class LLMPipeline:
 
 MODEL_API_CLASSES = {
     "gpt4": ("OPENAI_API_KEY", "azure/gpt-4o", (GPT2TokenizerFast,"Xenova/gpt-4o"), "https://aikey-gateway.ivia.ch"),
+    "o1": ("O1_API_KEY", "azure/o1", (GPT2TokenizerFast,"Xenova/gpt-4o"), "https://aikey-gateway.ivia.ch"),
     "deepseek": ("DEEPSEEK_API_KEY", "deepseek-chat", DSTokenizer, "https://api.deepseek.com"),
 }
 
@@ -557,3 +558,23 @@ class LLMAPI:
         if len(self.request_times) > self.RATE_LIMIT:
             wait_time = 60 - (now - self.request_times[0])
             time.sleep(wait_time)  # Delay to stay within rate limit
+            
+            
+            
+def process_instructions(df, llm):
+    valid_ids = []
+    valid_responses = []
+    
+    for _, row in df.iterrows():
+        try:
+            response = llm.generate(row['instruction'])
+            valid_ids.append(row['id'])
+            valid_responses.append(response)
+        except ContentPolicyViolationError:
+            continue  # Skip instructions that raise the error
+    
+    # Filter the DataFrame to keep only valid rows
+    df_valid = df[df['id'].isin(valid_ids)].copy()
+    df_valid['response'] = valid_responses  # Add the valid responses
+    
+    return df_valid

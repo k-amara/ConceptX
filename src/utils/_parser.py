@@ -63,6 +63,9 @@ def arg_parse():
     parser.add_argument(
         "--num_batch", type=int, default=None
     )
+    parser.add_argument(
+        "--batch_size", type=int, default=None
+    )
     
     parser.add_argument(
         "--file_type", type=str, default="csv"

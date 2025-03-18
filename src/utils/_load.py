@@ -58,8 +58,14 @@ def load_data(args):
     else:
         raise ValueError("Unknown dataset type passed: %s!" % args.dataset)
     
-  ## final dataset df.columns ['id', 'instruction', 'reference_text']
-  
+def load_labels(args):
+    # Load dataset based on argument
+    if args.dataset == "genderbias":
+        df = pd.read_csv(os.path.join(args.data_save_dir, "stereotypical_temp_0.8_responses.csv"))
+        df = df[['id', 'gender']].rename(columns={'gender': 'label'})
+        return df
+    else:
+        raise ValueError("Unknown dataset type passed: %s!" % args.dataset)
   
 def load_file(args, folder_name):
     # Load explanations from the specified path

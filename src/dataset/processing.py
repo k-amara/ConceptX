@@ -3,7 +3,7 @@ import csv
 import json
 from dotenv import load_dotenv
 import os
-
+import pandas as pd
 # Load the .env file
 load_dotenv()
 
@@ -80,10 +80,11 @@ if __name__=="__main__":
         writer.writeheader()
         
         for domain, instructions in json_instruction.items():
-            for i, instruction in enumerate(instructions):
+            index = 0
+            for instruction in instructions:
                 output = generate_stereotypical_responses(instruction)
                 for result in output:
-                    result["id"] = i
+                    result["id"] = index
                     result["domain"] = domain
                     writer.writerow(result)
-                    
+                    index += 1

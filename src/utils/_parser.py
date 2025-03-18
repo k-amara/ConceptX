@@ -151,7 +151,7 @@ def arg_parse():
     
     parser.add_argument(
         "--masking_method",
-        default="random",
+        default="ellipsis",
         type=str,
         help="Masking strategy when evaluating faithfulness (random, ellipsis)",
     )

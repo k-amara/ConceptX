@@ -47,11 +47,11 @@ def process_dataframe(df, llm, vectorizer, thresholds=np.arange(0, 1.1, 0.1), me
     """Process dataframe to compute faithfulness scores across thresholds."""
     results = []
     for _, row in df.iterrows():
-        entry = {"id": row["id"], "instruction": row["instruction"], "explanation": row["explanation"]}
-        original_response = llm.generate(row["instruction"])
+        entry = {"id": row["id"], "instruction": row["instruction"]}
+        original_response = row["response"]
         
         for k in thresholds:
-            masked_dict = mask_tokens(row["explanation"], k)
+            masked_dict = mask_tokens(eval(row["explanation"]), k)
             new_instruction = transform_tokens(masked_dict, method)
             new_response = llm.generate(new_instruction)
             similarity = evaluate_similarity(original_response, new_response, vectorizer)

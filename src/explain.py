@@ -15,12 +15,15 @@ def compute_explanations(args, save=True):
         
     api_required = True if args.model_name in ["gpt4", "deepseek"] else False 
     llm = LLMAPI(args) if api_required else LLMPipeline(args)
+    
     vectorizer = load_vectorizer(args.vectorizer)
     
     df = load_data(args)
     print(df.head())
-    instructions = df['instruction'].tolist()[:5]
-    ids = df["id"].tolist()[:5]
+    instructions = df['instruction'].tolist()
+    ids = df["id"].tolist()
+    
+    responses = [llm.generate(instruction) for instruction in instructions]
     
     # Choose appropriate explainer based on specified explainer
     kwargs = {}
@@ -42,9 +45,9 @@ def compute_explanations(args, save=True):
         # Determine baseline if needed
         baseline_texts = None
         if args.baseline == "reference":
-            baseline_texts = df['reference'].tolist()[:5]
+            baseline_texts = df['reference'].tolist()
         elif args.baseline == "concept":
-            baseline_texts = df['gender'].tolist()[:5] 
+            baseline_texts = df['gender'].tolist() 
         # Add baseline to kwargs only if it's not None
         kwargs = {"baseline_texts": baseline_texts} if baseline_texts is not None else {}
     else:
@@ -60,6 +63,7 @@ def compute_explanations(args, save=True):
         explanations_dict = {
             "id": ids,
             "instruction": instructions,
+            "response": responses,
             "explanation": explanations
         }
         #with open(explanations_path, "wb") as f:

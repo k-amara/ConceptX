@@ -19,6 +19,7 @@ import os
 import inspect
 import logging
 from typing import Tuple
+import time
 
 import torch
 from accelerate import PartialState
@@ -56,7 +57,7 @@ from transformers import (
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from huggingface_hub import login
 
-from openai import OpenAI
+from openai import OpenAI, BadRequestError
 from deepseek_tokenizer import ds_token as DSTokenizer
 
 
@@ -394,7 +395,12 @@ class LLMPipeline:
 
                 self.model = _ModelFallbackWrapper(traced_model, self.model)
             
-    def generate(self, prompt):
+    def generate(self, instruction):
+        prompt = f"""
+        Given the following instruction, provide an answer as direct advice. Use continuous text. 
+        Instruction: "{instruction}"
+        Response:
+        """
         prompt_text = prompt if prompt else input("Model prompt >>> ")
         
         if self.is_llama:
@@ -487,8 +493,14 @@ MODEL_API_CLASSES = {
 }
 
 
+class ContentPolicyViolationError(Exception):
+    """Raised when the API request violates the content policy and is blocked."""
+    pass
+
 class LLMAPI:
-    def __init__(self, args):
+    RATE_LIMIT = 100  # Max requests per minute
+
+    def __init__(self, args, rate_limit_enabled=False):
         self.args = args
         self.args.model_name = args.model_name.lower()
         self.api_key, self.model_id, tokenizer, self.base_url = MODEL_API_CLASSES[self.args.model_name]
@@ -502,19 +514,46 @@ class LLMAPI:
             tokenizer = tokenizer[0].from_pretrained(tokenizer[1])
         self.tokenizer = tokenizer
 
+        self.rate_limit_enabled = rate_limit_enabled  # Toggle rate limiting
+        self.request_times = []
+
     def generate(self, instruction):
-        prompt = f"""
-        Given the following instruction, provide an answer as direct advice. Do not use bullet points.
-        Instruction: "{instruction}"
-        Response:
-        """
-        response = self.client.chat.completions.create(
+        if self.rate_limit_enabled:
+            self._enforce_rate_limit()
+        
+        try:
+            prompt = f"""
+            Given the following instruction, provide an answer as direct advice. Do not use bullet points.
+            Instruction: "{instruction}"
+            Response:
+            """
+            response = self.client.chat.completions.create(
                 model=self.model_id,
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant"},
                     {"role": "user", "content": prompt}
-                    ],
+                ],
                 temperature=self.args.temperature,
                 stream=False
             )
-        return response.choices[0].message.content
+            
+            return response.choices[0].message.content
+
+        except BadRequestError as e:
+            error_message = str(e)
+            if "ContentPolicyViolationError" in error_message:
+                raise ContentPolicyViolationError("Azure OpenAI blocked the request due to content policy violation.")
+            else:
+                raise  # Re-raise other errors
+
+    def _enforce_rate_limit(self):
+        """Ensure we do not exceed 100 requests per minute."""
+        now = time.time()
+        self.request_times.append(now)
+
+        # Remove timestamps older than 60 seconds
+        self.request_times = [t for t in self.request_times if now - t < 60]
+
+        if len(self.request_times) > self.RATE_LIMIT:
+            wait_time = 60 - (now - self.request_times[0])
+            time.sleep(wait_time)  # Delay to stay within rate limit

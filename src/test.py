@@ -12,20 +12,17 @@ def test_model(args):
     
     if args.seed is not None:
         set_seed(args.seed)
-        
-    llm = LLMAPI(args) if args.model_type == "api" else LLMPipeline(args)
+    
+    api_required = True if args.model_name in ["gpt4", "deepseek"] else False 
+    rate_limit = True if args.model_name == "gpt4" else False
+    llm = LLMAPI(args, rate_limit_enabled=rate_limit) if api_required else LLMPipeline(args)
     
     df = load_data(args)
     print(df.head())
-    instructions = df['instruction'].tolist()[:2]
+    instructions = df['instruction'].tolist()[:5]
     for instruction in instructions:
-        prompt = f"""
-        Given the following instruction, provide an answer as direct advice. Do not use bullet points.
-        Instruction: "{instruction}"
-        Response:
-        """
         print("Instruction:", instruction)
-        response = llm.generate(prompt)
+        response = llm.generate(instruction)
         print("Response:", response)
 
     return

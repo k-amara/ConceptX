@@ -39,7 +39,16 @@ def load_vectorizer(vectorizer_name: str, **kwargs) -> TextVectorizer:
     else:
         raise ValueError(f"Unknown vectorizer name: {vectorizer_name}")
     
+def split_batch(df, num_batch, batch_size):
+    # Limit data to specified batch size and number
+    n = len(df)
+    # Check that num_batch and batch_size do not exceed available data
+    total_batches = n // batch_size + (1 if n % batch_size != 0 else 0)
+    assert num_batch < total_batches, f"Batch number {num_batch} is too large! Only {total_batches} batches available."
 
+    n_min = batch_size * num_batch
+    n_max = min(batch_size * (num_batch + 1), n)  # Ensure we don't exceed the dataset size
+    return df[n_min:n_max]
 
 def load_data(args):
     # Load dataset based on argument
@@ -50,13 +59,23 @@ def load_data(args):
         # Filter based on instruction length
         df_filtered = df_filtered[df_filtered['instruction'].str.len() <= 58]
         df_filtered['id'] = df_filtered.index
-        return df_filtered[['id', 'instruction']]
+        df_final = df_filtered[['id', 'instruction']]
     elif args.dataset == "genderbias":
         df = pd.read_csv(os.path.join(args.data_save_dir, "stereotypical_temp_0.8_responses.csv"))
         # ['id', 'instruction', 'reference', 'gender']
-        return df[['id', 'instruction', 'reference', 'gender']]
+        df_final = df[['id', 'instruction', 'reference', 'gender']]
     else:
         raise ValueError("Unknown dataset type passed: %s!" % args.dataset)
+    
+    
+    if args.num_batch is not None:
+        print(f"Batch number {args.num_batch} of size {args.batch_size} is being used.")
+        df_final = split_batch(df_final, args.num_batch, args.batch_size)
+    else:
+        print(f"Batch number is not specified. Using all {len(df_final)} examples.")
+    
+    return df_final
+    
     
 def load_labels(args):
     # Load dataset based on argument

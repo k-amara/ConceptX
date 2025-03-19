@@ -488,7 +488,8 @@ class LLMPipeline:
 
 
 MODEL_API_CLASSES = {
-    "gpt4": ("OPENAI_API_KEY", "azure/gpt-4o", (GPT2TokenizerFast,"Xenova/gpt-4o"), "https://aikey-gateway.ivia.ch"),
+    "gpt4o-mini": ("GPT4O_MINI_API_KEY", "azure/gpt-4o-mini", (GPT2TokenizerFast,"Xenova/gpt-4o"), "https://aikey-gateway.ivia.ch"),
+    "gpt4o": ("GPT4O_API_KEY", "azure/gpt-4o", (GPT2TokenizerFast,"Xenova/gpt-4o"), "https://aikey-gateway.ivia.ch"),
     "o1": ("O1_API_KEY", "azure/o1", (GPT2TokenizerFast,"Xenova/gpt-4o"), "https://aikey-gateway.ivia.ch"),
     "deepseek": ("DEEPSEEK_API_KEY", "deepseek-chat", DSTokenizer, "https://api.deepseek.com"),
 }
@@ -528,6 +529,7 @@ class LLMAPI:
             Instruction: "{instruction}"
             Response:
             """
+            print("Model used", self.model_id)
             response = self.client.chat.completions.create(
                 model=self.model_id,
                 messages=[
@@ -564,7 +566,7 @@ class LLMAPI:
 def process_instructions(df, llm):
     valid_ids = []
     valid_responses = []
-    
+    print("Model used", llm.args.model_name)
     for _, row in df.iterrows():
         try:
             response = llm.generate(row['instruction'])

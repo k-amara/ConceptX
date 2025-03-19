@@ -11,8 +11,10 @@ def compute_explanations(args, save=True):
     if args.seed is not None:
         set_seed(args.seed)
         
-    api_required = True if args.model_name in ["gpt4", "o1", "deepseek"] else False 
-    llm = LLMAPI(args) if api_required else LLMPipeline(args)
+    print("args.model_name: ", args.model_name)
+    api_required = True if args.model_name in ["gpt4o-mini", "gpt4o", "o1", "deepseek"] else False 
+    rate_limit = True if args.model_name.startswith("gpt4") else False
+    llm = LLMAPI(args, rate_limit_enabled=rate_limit) if api_required else LLMPipeline(args)
     
     vectorizer = load_vectorizer(args.vectorizer)
     

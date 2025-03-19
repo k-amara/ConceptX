@@ -80,49 +80,46 @@ def get_explanations_accuracy(args):
         print(f"Explanations directory not found: {explanations_dir}")
         return
     
+    
+    # Walk through all subdirectories
     for root, _, files in os.walk(explanations_dir):
         for file in files:
             if file.endswith(args.file_type):
-                # Extract model_name, dataset, explainer, and seed from folder structure
-                path_parts = root.split(os.sep)
-                print("path_parts: ", path_parts)
-                try:
-                    model_name = path_parts[-4]  # Example: explanations/model/dataset/explainer/0/
-                    dataset = path_parts[-3]
-                    explainer = path_parts[-2]
-                    seed = path_parts[-1].split("_")[1]  # Extract seed (e.g., "0")
-                except IndexError:
-                    print(f"Skipping {root}, unexpected folder structure.")
-                    continue
-                print("seed")
-                # Initialize args_dict with extracted values
+                # Extract args from filename
+                parts = file.split("_")
+                print("parts: ", parts)
                 args_dict = {
-                    "result_save_dir": args.result_save_dir,
-                    "data_save_dir": args.data_save_dir,
                     "num_batch": None,
-                    "dataset": dataset,
-                    "model_name": model_name,
-                    "explainer": explainer,
+                    "dataset": None,
+                    "model_name": None,
+                    "explainer": None,
                     "baseline": None,
-                    "seed": seed,
-                    "file_type": args.file_type
+                    "seed": None,
+                    "file_type": args.file_type,
+                    "result_save_dir": args.result_save_dir,
+                    "data_save_dir": args.data_save_dir
                 }
 
-                # Extract optional num_batch and baseline from filename
-                parts = file.split("_")
-                
-                # Check if 'batch' exists and handle accordingly
                 if "batch" in parts[1]:
-                    # If there's no 'batch_' in the string, skip split('batch_')
-                    batch_part = parts[1].split("batch")
-                    if len(batch_part) > 1:
-                        args_dict["num_batch"] = batch_part[1]
+                    args_dict["num_batch"] = parts[2]
+                    dataset_idx = 3
+                else:
+                    dataset_idx = 1
                 
-                if len(parts) > 5:  # Check if baseline exists in filename
-                    args_dict["baseline"] = parts[-2]
-
+                args_dict["dataset"] = parts[dataset_idx]
+                args_dict["model_name"] = parts[dataset_idx + 1]
+                args_dict["explainer"] = parts[dataset_idx + 2]
                 print("args_dict", args_dict)
-                # Convert args_dict to argparse.Namespace
+                print("dataset_idx: ", dataset_idx)
+                if len(parts) > dataset_idx + 4:
+                    args_dict["baseline"] = parts[dataset_idx + 3]
+                    seed_idx = dataset_idx + 4
+                else:
+                    seed_idx = dataset_idx + 3
+
+                args_dict["seed"] = parts[seed_idx].split(".")[0]
+
+                # Convert dictionary to argparse.Namespace
                 extracted_args = argparse.Namespace(**args_dict)
 
                 # Get expected accuracy file path
@@ -133,6 +130,7 @@ def get_explanations_accuracy(args):
                     eval_accuracy(extracted_args)
                 else:
                     print(f"Skipping: {file} (already processed)")
+
                     
 
 # Example usage

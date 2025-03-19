@@ -1,10 +1,12 @@
 import pandas as pd
 import numpy as np
 import random
+import os
+import gc
 
 from model import LLMPipeline, LLMAPI
 from explainers import *
-from utils import arg_parse, load_file, save_dataframe, load_vectorizer
+from utils import arg_parse, merge_args, load_file, extract_args_from_filename, load_vectorizer, get_path, get_remaining_df
 from accelerate.utils import set_seed
 import requests
 
@@ -38,43 +40,93 @@ def transform_tokens(masked_dict, method="random"):
 def evaluate_similarity(original_response, new_response, vectorizer):
     """Compute semantic similarity between original and new response."""
     # Use the configured vectorizer
+    original_response = str(original_response)
+    new_response = str(new_response)
     vectors = vectorizer.vectorize([original_response, new_response])
     cosine_similarity = vectorizer.calculate_similarity(vectors[0], vectors[1])
     return cosine_similarity
 
 
-def process_dataframe(df, llm, vectorizer, thresholds=np.arange(0, 1.1, 0.1), method="random"):
+def process_dataframe(row, llm, vectorizer, thresholds=np.arange(0, 1.1, 0.1), method="random"):
     """Process dataframe to compute faithfulness scores across thresholds."""
-    results = []
-    for _, row in df.iterrows():
-        entry = {"id": row["id"], "instruction": row["instruction"]}
-        original_response = row["response"]
-        
-        for k in thresholds:
-            masked_dict = mask_tokens(eval(row["explanation"]), k)
-            new_instruction = transform_tokens(masked_dict, method)
-            new_response = llm.generate(new_instruction)
-            similarity = evaluate_similarity(original_response, new_response, vectorizer)
-            entry[f"sim_{k:.1f}"] = similarity
-        results.append(entry)
+    entry = {"id": row["id"], "instruction": row["instruction"]}
+    original_response = row["response"]
     
-    return pd.DataFrame(results)
+    for k in thresholds:
+        masked_dict = mask_tokens(eval(row["explanation"]), k)
+        new_instruction = transform_tokens(masked_dict, method)
+        new_response = llm.generate(new_instruction)
+        similarity = evaluate_similarity(original_response, new_response, vectorizer)
+        entry[f"sim_{k:.1f}"] = similarity
+    
+    return entry
 
 
 def eval_faithfulness(args, save=True):
     if args.seed is not None:
         set_seed(args.seed)
         
-    api_required = True if args.model_name in ["gpt4", "deepseek"] else False 
-    llm = LLMAPI(args) if api_required else LLMPipeline(args)
+    api_required = True if args.model_name in ["gpt4o-mini", "gpt4o", "o1", "deepseek"] else False 
+    rate_limit = True if args.model_name.startswith("gpt4") else False
+    llm = LLMAPI(args, rate_limit_enabled=rate_limit) if api_required else LLMPipeline(args)
+    
     vectorizer = load_vectorizer(args.vectorizer)
     
-    df_explanations = load_file(args, folder_name="explanations")
-    print(df_explanations.head())
-    faithfulness_df = process_dataframe(df_explanations, llm, vectorizer, method=args.masking_method)
-    print("Faithfulness Scores", faithfulness_df.head())
-    if save:
-        save_dataframe(faithfulness_df, args, folder_name="faithfulness")
+    df = load_file(args, folder_name="explanations")
+        
+    faithfulness_path = get_path(args, folder_name="faithfulness")
+    file_exists = os.path.isfile(faithfulness_path)  # Check if file exists
+    df = get_remaining_df(df, faithfulness_path)
+    for i in range(len(df)):  # Process each instruction one by one
+        row = df.iloc[i]
+        instruction_id = df.iloc[i]["id"]
+        entry = process_dataframe(row, llm, vectorizer, method=args.masking_method)
+        # Store in a DataFrame
+        row_df = pd.DataFrame([entry])
+
+        if save:
+            # Append the single row to the CSV (write header only for the first instance)
+            row_df.to_csv(faithfulness_path, mode="a", header=not file_exists, index=False)
+            file_exists = True  # Ensure header is not written again
+        else: 
+            print(f"Faithfulness score at id {instruction_id}: ", row_df)
+        # Clear cache to free memory
+        del row, entry, row_df
+        gc.collect()
+
+
+def get_explanations_faithfulness(args):
+    explanations_dir = os.path.join(args.result_save_dir, "explanations")
+    
+    if not os.path.exists(explanations_dir):
+        print(f"Explanations directory not found: {explanations_dir}")
+        return
+    
+    # Walk through all subdirectories
+    for root, _, files in os.walk(explanations_dir):
+        for file in files:
+            if file.endswith(args.file_type):
+                # Extract arguments from filename
+                args_dict = extract_args_from_filename(file, args)
+
+                # Convert dictionary to argparse.Namespace
+                updated_args = merge_args(args, args_dict)
+
+                # Get expected faithfulness file path
+                faithfulness_path = get_path(updated_args, folder_name="faithfulness")
+
+                if not os.path.exists(faithfulness_path):
+                    print(f"Processing: {file}")
+                    eval_faithfulness(updated_args)
+                else:
+                    print(f"Skipping: {file} (already processed)")
+
+                    
+
+# Example usage
+# args should contain result_save_dir and file_type at minimum
+# process_explanations(args)
+
 
 if __name__=="__main__":
     parser, args = arg_parse()

@@ -2,16 +2,16 @@ from explainers import *
 import pickle as pkl
 import pandas as pd
 from model import LLMPipeline, LLMAPI, process_instructions
-from utils import arg_parse, load_data, load_vectorizer, get_path
+from utils import arg_parse, load_data, load_vectorizer, get_path, get_remaining_df
 from accelerate.utils import set_seed
-
+import os
+import gc
 
 def compute_explanations(args, save=True):
     
     if args.seed is not None:
         set_seed(args.seed)
         
-    print("args.model_name: ", args.model_name)
     api_required = True if args.model_name in ["gpt4o-mini", "gpt4o", "o1", "deepseek"] else False 
     rate_limit = True if args.model_name.startswith("gpt4") else False
     llm = LLMAPI(args, rate_limit_enabled=rate_limit) if api_required else LLMPipeline(args)
@@ -50,22 +50,36 @@ def compute_explanations(args, save=True):
     else:
         raise ("Unknown explainer type passed: %s!" % args.explainer)
     
-    explanations = explainer(df['instruction'].tolist(), **kwargs)
-    # a list of dictionaries, each dictionary contains the explanation for a single instruction
-    print("Explanations", explanations)
-    
-    if save:
-        explanations_path = get_path(args, folder_name="explanations")
-        # Store in a dictionary
-        explanations_df = df[["id", "instruction", "response"]]
-        explanations_df["explanation"] = explanations
-        #with open(explanations_path, "wb") as f:
-            #pkl.dump(explanations_dict, f)
-        # Convert the dictionary to a pandas DataFrame
-        # explanations_df = pd.DataFrame(explanations_dict)
-        explanations_df.to_csv(explanations_path, index=False)
-    
-    return explanations
+    explanations_path = get_path(args, folder_name="explanations")
+    file_exists = os.path.isfile(explanations_path)  # Check if file exists
+    df = get_remaining_df(df, explanations_path)
+    for i in range(len(df)):  # Process each instruction one by one
+        instruction = df.iloc[i]["instruction"]
+        response = df.iloc[i]["response"]
+        instruction_id = df.iloc[i]["id"]
+        
+        # Get explanation for the single instruction
+        explanation = explainer([instruction], **kwargs)[0]  
+
+        # Store in a DataFrame
+        row_df = pd.DataFrame([{
+            "id": instruction_id,
+            "instruction": instruction,
+            "response": response,
+            "explanation": explanation
+        }])
+
+        if save:
+            # Append the single row to the CSV (write header only for the first instance)
+            row_df.to_csv(explanations_path, mode="a", header=not file_exists, index=False)
+            file_exists = True  # Ensure header is not written again
+        else: 
+            print(f"Explanation id {instruction_id}: ", row_df)
+        # Clear cache to free memory
+        del instruction, response, instruction_id, explanation, row_df
+        gc.collect()
+        
+    return
     
 
 

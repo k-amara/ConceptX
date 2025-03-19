@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"), # OpenAI API Key
+    api_key=os.getenv("GPT4O_MINI_API_KEY"), # OpenAI API Key
     base_url="https://aikey-gateway.ivia.ch" # LiteLLM Proxy is OpenAI compatible, Read More: https://docs.litellm.ai/docs/proxy/user_keys
 )
 
@@ -38,7 +38,7 @@ def create_prompt_for_replacement(sentence, input_concepts):
         """
     return prompt
 
-def get_multiple_completions(prompt, model="azure/gpt-4o", num_sequences=3, temperature=1.0):
+def get_multiple_completions(prompt, model="azure/gpt-4o-mini", num_sequences=3, temperature=1.0):
     responses = []
     
     for _ in range(num_sequences):

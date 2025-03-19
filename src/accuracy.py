@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import argparse
-from utils import arg_parse, load_file, save_dataframe, load_labels, get_path
+from utils import arg_parse, merge_args, load_file, save_dataframe, load_labels, get_path
 
 def get_explanation_ranks(explanation_scores):
     # Sort tokens based on their scores in descending order
@@ -87,7 +87,7 @@ def get_explanations_accuracy(args):
             if file.endswith(args.file_type):
                 # Extract args from filename
                 parts = file.split("_")
-                print("parts: ", parts)
+                
                 args_dict = {
                     "num_batch": None,
                     "dataset": None,
@@ -109,8 +109,7 @@ def get_explanations_accuracy(args):
                 args_dict["dataset"] = parts[dataset_idx]
                 args_dict["model_name"] = parts[dataset_idx + 1]
                 args_dict["explainer"] = parts[dataset_idx + 2]
-                print("args_dict", args_dict)
-                print("dataset_idx: ", dataset_idx)
+                
                 if len(parts) > dataset_idx + 4:
                     args_dict["baseline"] = parts[dataset_idx + 3]
                     seed_idx = dataset_idx + 4
@@ -120,14 +119,14 @@ def get_explanations_accuracy(args):
                 args_dict["seed"] = parts[seed_idx].split(".")[0]
 
                 # Convert dictionary to argparse.Namespace
-                extracted_args = argparse.Namespace(**args_dict)
+                updated_args = merge_args(args, args_dict)
 
                 # Get expected accuracy file path
-                accuracy_path = get_path(extracted_args, folder_name="accuracy")
+                accuracy_path = get_path(updated_args, folder_name="accuracy")
 
                 if not os.path.exists(accuracy_path):
                     print(f"Processing: {file}")
-                    eval_accuracy(extracted_args)
+                    eval_accuracy(updated_args)
                 else:
                     print(f"Skipping: {file} (already processed)")
 

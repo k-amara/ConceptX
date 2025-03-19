@@ -529,7 +529,6 @@ class LLMAPI:
             Instruction: "{instruction}"
             Response:
             """
-            print("Model used", self.model_id)
             response = self.client.chat.completions.create(
                 model=self.model_id,
                 messages=[
@@ -566,7 +565,6 @@ class LLMAPI:
 def process_instructions(df, llm):
     valid_ids = []
     valid_responses = []
-    print("Model used", llm.args.model_name)
     for _, row in df.iterrows():
         try:
             response = llm.generate(row['instruction'])

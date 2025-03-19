@@ -88,14 +88,14 @@ def load_labels(args):
   
 def load_file(args, folder_name):
     # Load explanations from the specified path
-    explanations_path = get_path(args, folder_name)
+    data_path = get_path(args, folder_name)
     if args.file_type == "pkl":
-        with open(explanations_path, "rb") as f:
-            explanations = pkl.load(f)
-        df_explanations = pd.DataFrame(explanations)
+        with open(data_path, "rb") as f:
+            data = pkl.load(f)
+        df = pd.DataFrame(data)
     elif args.file_type == "csv":
-        df_explanations = pd.read_csv(explanations_path)
-    return df_explanations
+        df = pd.read_csv(data_path)
+    return df
 
 def save_file(data, args, folder_name):
     # Save data to the specified path
@@ -116,3 +116,76 @@ def save_dataframe(data, args, folder_name):
         data.to_csv(save_path, index=False)
     return
 
+
+
+def get_remaining_df(df, path):
+    """
+    Checks if the CSV exists and returns the dataframe with remaining instructions.
+    
+    Args:
+        df (pd.DataFrame): Original dataframe with all instructions.
+        path (str): Path to the saved CSV.
+
+    Returns:
+        pd.DataFrame: Filtered dataframe with remaining instructions to process.
+    """
+    if os.path.isfile(path):
+        existing_df = pd.read_csv(path)
+        if not existing_df.empty:
+            last_id = existing_df["id"].max()  # Get last processed ID
+        else:
+            last_id = -1  # If empty, start from beginning
+    else:
+        last_id = -1  # If no file exists, start from the beginning
+
+    print(f"Resuming from ID: {last_id + 1}")
+    
+    # Return the remaining dataframe
+    return df[df["id"] > last_id]
+
+
+def extract_args_from_filename(file):
+    """
+    Extract arguments from the file name and return a dictionary of arguments.
+    
+    Args:
+        file (str): The file name.
+        args (argparse.Namespace): The existing args to merge with extracted values.
+
+    Returns:
+        dict: Dictionary of extracted arguments.
+    """
+    parts = file.split("_")
+    print("parts: ", parts)
+    
+    args_dict = {
+        "num_batch": None,
+        "dataset": None,
+        "model_name": None,
+        "explainer": None,
+        "baseline": None,
+        "seed": None
+    }
+
+    if "batch" in parts[1]:
+        args_dict["num_batch"] = int(parts[2])
+        dataset_idx = 3
+    else:
+        dataset_idx = 1
+    
+    args_dict["dataset"] = parts[dataset_idx]
+    args_dict["model_name"] = parts[dataset_idx + 1]
+    args_dict["explainer"] = parts[dataset_idx + 2]
+    
+    if args_dict["model_name"] == "gpt4o":
+        return None  # Skip if model_name is "gpt4o"
+    
+    if len(parts) > dataset_idx + 4:
+        args_dict["baseline"] = parts[dataset_idx + 3]
+        seed_idx = dataset_idx + 4
+    else:
+        seed_idx = dataset_idx + 3
+
+    args_dict["seed"] = int(parts[seed_idx].split(".")[0])
+
+    return args_dict

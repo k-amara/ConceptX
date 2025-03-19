@@ -169,3 +169,12 @@ def create_args_group(parser, args):
         group_dict = {a.dest: getattr(args, a.dest, None) for a in group._group_actions}
         arg_groups[group.title] = group_dict
     return arg_groups
+
+
+def merge_args(args, args_dict):
+    # Convert args (Namespace) to a dictionary
+    args_dict_existing = vars(args).copy()
+    # Update with new values, giving priority to args_dict
+    args_dict_existing.update({k: v for k, v in args_dict.items() if v is not None})
+    # Reconstruct Namespace with updated values
+    return argparse.Namespace(**args_dict_existing)

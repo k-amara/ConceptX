@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
-import argparse
-from utils import arg_parse, merge_args, load_file, save_dataframe, load_labels, get_path
+from utils import arg_parse, merge_args, load_file, extract_args_from_filename, save_dataframe, load_labels, get_path
 
 def get_explanation_ranks(explanation_scores):
     # Sort tokens based on their scores in descending order
@@ -80,43 +79,12 @@ def get_explanations_accuracy(args):
         print(f"Explanations directory not found: {explanations_dir}")
         return
     
-    
     # Walk through all subdirectories
     for root, _, files in os.walk(explanations_dir):
         for file in files:
             if file.endswith(args.file_type):
-                # Extract args from filename
-                parts = file.split("_")
-                
-                args_dict = {
-                    "num_batch": None,
-                    "dataset": None,
-                    "model_name": None,
-                    "explainer": None,
-                    "baseline": None,
-                    "seed": None,
-                    "file_type": args.file_type,
-                    "result_save_dir": args.result_save_dir,
-                    "data_save_dir": args.data_save_dir
-                }
-
-                if "batch" in parts[1]:
-                    args_dict["num_batch"] = parts[2]
-                    dataset_idx = 3
-                else:
-                    dataset_idx = 1
-                
-                args_dict["dataset"] = parts[dataset_idx]
-                args_dict["model_name"] = parts[dataset_idx + 1]
-                args_dict["explainer"] = parts[dataset_idx + 2]
-                
-                if len(parts) > dataset_idx + 4:
-                    args_dict["baseline"] = parts[dataset_idx + 3]
-                    seed_idx = dataset_idx + 4
-                else:
-                    seed_idx = dataset_idx + 3
-
-                args_dict["seed"] = parts[seed_idx].split(".")[0]
+                # Extract arguments from filename
+                args_dict = extract_args_from_filename(file)
 
                 # Convert dictionary to argparse.Namespace
                 updated_args = merge_args(args, args_dict)

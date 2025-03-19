@@ -107,7 +107,7 @@ def get_explanations_faithfulness(args):
         for file in files:
             if file.endswith(args.file_type):
                 # Extract arguments from filename
-                args_dict = extract_args_from_filename(file, args)
+                args_dict = extract_args_from_filename(file)
 
                 # Convert dictionary to argparse.Namespace
                 updated_args = merge_args(args, args_dict)

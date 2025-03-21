@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+from scipy.stats import entropy
 from utils import arg_parse, merge_args, load_file, extract_args_from_filename, save_dataframe, load_labels, get_path
 
 def get_explanation_ranks(explanation_scores):
@@ -36,6 +37,18 @@ def top_explanation_difference(explanation_scores):
         return None  # Not enough data to compute a difference
     return sorted_scores[0] - sorted_scores[1]
 
+
+def entropy(explanation_scores):
+    positive_scores = np.array([v for v in explanation_scores.values() if v > 0])
+
+    if positive_scores.sum() > 0:
+        prob_distribution = positive_scores / positive_scores.sum()
+        return -np.sum(prob_distribution * np.log2(prob_distribution))  # Use np.log2()
+    else:
+        print("No positive scores found, entropy is undefined.")
+        return None
+        
+
 def compute_acc_metrics(df, args):
     results = []
     labels = load_labels(args)
@@ -43,11 +56,14 @@ def compute_acc_metrics(df, args):
     merged_df = pd.merge(df, labels[['id', 'label']], on='id', how='left')
     for _, row in merged_df.iterrows():
         entry = {"id": row["id"], "instruction": row["instruction"]}
-        rank_dict = get_explanation_ranks(eval(row["explanation"]))
+        explanation = eval(row["explanation"])
+        rank_dict = get_explanation_ranks(explanation)
         entry["label_rank"] = rank_dict.get(row["label"], None)
         entry["top_3_tokens"] = [token for token, rank in sorted(rank_dict.items(), key=lambda item: item[1])[:3]]
-        entry["top_difference"] = top_explanation_difference(eval(row["explanation"]))
-        entry["top_label_difference"] = top_label_explanation_difference(eval(row["explanation"]), row["label"])
+        entry["top_difference"] = top_explanation_difference(explanation)
+        entry["top_label_difference"] = top_label_explanation_difference(explanation, row["label"])
+        entry["entropy"] = entropy(explanation)
+        entry["label"] = row["label"]
         results.append(entry)
     
     return pd.DataFrame(results)

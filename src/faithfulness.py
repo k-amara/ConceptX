@@ -4,7 +4,7 @@ import random
 import os
 import gc
 
-from model import LLMPipeline, LLMAPI
+from model import LLMPipeline, LLMAPI, ContentPolicyViolationError
 from explainers import *
 from utils import arg_parse, merge_args, load_file, extract_args_from_filename, load_vectorizer, get_path, get_remaining_df
 from accelerate.utils import set_seed
@@ -55,7 +55,10 @@ def process_dataframe(row, llm, vectorizer, thresholds=np.arange(0, 1.1, 0.1), m
     for k in thresholds:
         masked_dict = mask_tokens(eval(row["explanation"]), k)
         new_instruction = transform_tokens(masked_dict, method)
-        new_response = llm.generate(new_instruction)
+        try:
+            new_response = llm.generate(new_instruction)
+        except ContentPolicyViolationError:
+            continue  # Skip instructions that raise the error
         similarity = evaluate_similarity(original_response, new_response, vectorizer)
         entry[f"sim_{k:.1f}"] = similarity
     

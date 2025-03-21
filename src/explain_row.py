@@ -48,9 +48,10 @@ def compute_explanations(args):
         raise ("Unknown explainer type passed: %s!" % args.explainer)
     
     
-    i = 115
+    i = 84
     instruction = df.iloc[i]["instruction"]
     instruction_id = df.iloc[i]["id"]
+    print("instruction_id: ", instruction_id)
     
     # Get explanation for the single instruction
     explanation = explainer([instruction], **kwargs)[0]  

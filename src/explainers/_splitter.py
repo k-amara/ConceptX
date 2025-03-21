@@ -2,6 +2,7 @@ import re
 import spacy
 import requests
 
+from model import ContentPolicyViolationError
 from utils import create_prompt_for_replacement, get_multiple_completions
 
 nlp = spacy.load("en_core_web_sm")
@@ -105,9 +106,14 @@ class ConceptSplitter(Splitter):
     
     def get_replacements(self, concepts, text):
         prompt = create_prompt_for_replacement(text, concepts)
-        completions = get_multiple_completions(prompt, num_sequences=1)
-        print(completions)
-        return eval(completions[0])
+        try:
+            completions = get_multiple_completions(prompt, num_sequences=1)
+            print(completions)
+            return eval(completions[0])
+        
+        except ContentPolicyViolationError:
+            print(f"Skipping prompt due to content policy violation during replacements: {text}")
+            return None  # Return None to signal skipping
     
     def get_main_concept(self, text):
         """Identifies the most important concept in the text based on ConceptNet connections."""

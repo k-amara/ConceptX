@@ -13,6 +13,7 @@ from explainers._explain_utils import normalize_explanation
 from model import ContentPolicyViolationError
 
 
+
 class ConceptSHAP(Explainer):
     def __init__(self, 
                  llm, 
@@ -175,6 +176,10 @@ class ConceptSHAP(Explainer):
             return None
         
         self.replacements = self.splitter.get_replacements(self.concepts, prompt_cleaned)
+        if self.replacements is None:
+            print("Skipping prompt due to content policy violation during replacements.")
+            return None  # Skip explanation if replacements failed
+        
         
         print("Words: ", self.words)
         print("Concepts: ", self.concepts)

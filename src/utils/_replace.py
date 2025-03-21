@@ -1,8 +1,8 @@
 # Please install OpenAI SDK first: `pip3 install openai`
 import os
-from openai import OpenAI
+from openai import OpenAI, BadRequestError
 from dotenv import load_dotenv
-
+from model import ContentPolicyViolationError
 # Load the .env file
 load_dotenv()
 
@@ -42,17 +42,25 @@ def get_multiple_completions(prompt, model="azure/gpt-4o-mini", num_sequences=3,
     responses = []
     
     for _ in range(num_sequences):
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant"},
-                {"role": "user", "content": prompt}
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant"},
+                    {"role": "user", "content": prompt}
                 ],
-            temperature=temperature,
-            stream=False
-        )
-        responses.append(response.choices[0].message.content)
-    
+                temperature=temperature,
+                stream=False
+            )
+            responses.append(response.choices[0].message.content)
+        
+        except BadRequestError as e:
+            error_message = str(e)
+            if "ContentPolicyViolationError" in error_message:
+                raise ContentPolicyViolationError("Azure OpenAI blocked the request due to content policy violation.")
+            else:
+                raise  # Re-raise other errors
+            
     return responses
 
 

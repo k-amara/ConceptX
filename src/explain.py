@@ -1,7 +1,7 @@
 from explainers import *
 import pickle as pkl
 import pandas as pd
-from model import LLMPipeline, LLMAPI, process_instructions
+from model import LLMPipeline, LLMAPI, ContentPolicyViolationError
 from utils import arg_parse, load_data, load_vectorizer, get_path, get_remaining_df
 from accelerate.utils import set_seed
 import os
@@ -20,7 +20,6 @@ def compute_explanations(args, save=True):
     
     df = load_data(args)
     print(df.head())
-    df = process_instructions(df, llm)
     
     # Choose appropriate explainer based on specified explainer
     kwargs = {}
@@ -55,11 +54,17 @@ def compute_explanations(args, save=True):
     df = get_remaining_df(df, explanations_path)
     for i in range(len(df)):  # Process each instruction one by one
         instruction = df.iloc[i]["instruction"]
-        response = df.iloc[i]["response"]
         instruction_id = df.iloc[i]["id"]
-        
+        try:
+            response = llm.generate(instruction)
+        except ContentPolicyViolationError:
+            continue  # Skip instructions that raise the error
+    
         # Get explanation for the single instruction
-        explanation = explainer([instruction], **kwargs)[0]  
+        explanation_list = explainer([instruction], **kwargs)
+        if not explanation_list:  # Check if explanation is an empty list
+            continue  # Skip this iteration and move to the next instruction -- probably becais
+        explanation = explanation_list[0]  
 
         # Store in a DataFrame
         row_df = pd.DataFrame([{

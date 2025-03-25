@@ -179,7 +179,11 @@ class ConceptSHAP(Explainer):
         if self.replacements is None:
             print("Skipping prompt due to content policy violation during replacements.")
             return None  # Skip explanation if replacements failed
-        
+        self.replacements = eval(self.replacements)
+        if len(self.concepts) != len(self.replacements):
+            print(f"Skipping prompt due to mismatch: concepts ({len(self.concepts)}) vs. replacements ({len(self.replacements)})")
+            return None  # Avoid proceeding if lengths mismatch
+                
         
         print("Words: ", self.words)
         print("Concepts: ", self.concepts)

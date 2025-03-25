@@ -10,6 +10,10 @@ from utils import arg_parse, merge_args, load_file, extract_args_from_filename, 
 from accelerate.utils import set_seed
 import requests
 
+import torch._dynamo
+torch._dynamo.config.suppress_errors = True  # Suppress TorchInductor errors
+torch._dynamo.reset()  # Reset inductor state
+
 # Download Google's 1M common words dataset
 url = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/20k.txt"
 VOCAB = requests.get(url).text.split("\n")
@@ -49,16 +53,16 @@ def evaluate_similarity(original_response, new_response, vectorizer):
 
 def process_dataframe(row, llm, vectorizer, thresholds=np.arange(0, 1.1, 0.1), method="random"):
     """Process dataframe to compute faithfulness scores across thresholds."""
-    entry = {"id": row["id"], "instruction": row["instruction"]}
+    entry = {"id": row["id"], "input": row["input"]}
     original_response = row["response"]
     
     for k in thresholds:
         masked_dict = mask_tokens(eval(row["explanation"]), k)
-        new_instruction = transform_tokens(masked_dict, method)
+        new_input = transform_tokens(masked_dict, method)
         try:
-            new_response = llm.generate(new_instruction)
+            new_response = llm.generate(new_input)
         except ContentPolicyViolationError:
-            continue  # Skip instructions that raise the error
+            continue  # Skip inputs that raise the error
         similarity = evaluate_similarity(original_response, new_response, vectorizer)
         entry[f"sim_{k:.1f}"] = similarity
     
@@ -80,9 +84,9 @@ def eval_faithfulness(args, save=True):
     faithfulness_path = get_path(args, folder_name="faithfulness")
     file_exists = os.path.isfile(faithfulness_path)  # Check if file exists
     df = get_remaining_df(df, faithfulness_path)
-    for i in range(len(df)):  # Process each instruction one by one
+    for i in range(len(df)):  # Process each input one by one
         row = df.iloc[i]
-        instruction_id = df.iloc[i]["id"]
+        input_id = df.iloc[i]["id"]
         entry = process_dataframe(row, llm, vectorizer, method=args.masking_method)
         # Store in a DataFrame
         row_df = pd.DataFrame([entry])
@@ -92,7 +96,7 @@ def eval_faithfulness(args, save=True):
             row_df.to_csv(faithfulness_path, mode="a", header=not file_exists, index=False)
             file_exists = True  # Ensure header is not written again
         else: 
-            print(f"Faithfulness score at id {instruction_id}: ", row_df)
+            print(f"Faithfulness score at id {input_id}: ", row_df)
         # Clear cache to free memory
         del row, entry, row_df
         gc.collect()

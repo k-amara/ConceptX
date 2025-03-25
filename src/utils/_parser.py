@@ -145,7 +145,7 @@ def arg_parse():
         "--baseline",
         default=None,
         type=str,
-        help="The baseline for TokenSHAP and ConceptSHAP - None (LLM initial response), reference (reference text), concept (a concept target)",
+        help="The baseline for TokenSHAP and ConceptSHAP - None (LLM initial response), reference (reference text), aspect (a specific aspect)",
     )
     
     

@@ -5,6 +5,9 @@ from model import LLMPipeline, LLMAPI
 from explainers import *
 from utils import arg_parse, load_data, load_vectorizer, get_path
 from accelerate.utils import set_seed
+import torch._dynamo
+torch._dynamo.config.suppress_errors = True  # Suppress TorchInductor errors
+torch._dynamo.reset()  # Reset inductor state
 
 
 
@@ -13,14 +16,33 @@ def test_model(args):
     if args.seed is not None:
         set_seed(args.seed)
     
-    api_required = True if args.model_name in ["gpt4", "o1", "deepseek"] else False 
+    api_required = True if args.model_name in ["gpt4o-mini", "o1", "deepseek"] else False 
     llm = LLMAPI(args,) if api_required else LLMPipeline(args)
     
     df = load_data(args)
     print(df.head())
-    instructions = df['instruction'].tolist()[:5]
-    for instruction in instructions:
+    inputs = df['instruction'].tolist()
+    for instruction in inputs:
         print("Instruction:", instruction)
+        response = llm.generate(instruction)
+        print("Response:", response)
+
+    return
+
+def test_sentiment(args):
+    
+    if args.seed is not None:
+        set_seed(args.seed)
+    
+    api_required = True if args.model_name in ["gpt4o-mini", "o1", "deepseek"] else False 
+    llm = LLMAPI(args,) if api_required else LLMPipeline(args)
+    
+    df = load_data(args)
+    print(df.head())
+    texts = df['text'].tolist()
+    for text in texts:
+        print("Text:", text)
+        instruction = f"""Determine the sentiment of the following sentence: {text}. Your response must be either "positive" or "negative"."""
         response = llm.generate(instruction)
         print("Response:", response)
 
@@ -31,11 +53,12 @@ def test_explainer(args):
     if args.seed is not None:
         set_seed(args.seed)
         
-    llm = LLMAPI(args) if args.model_type == "api" else LLMPipeline(args)
+    api_required = True if args.model_name in ["gpt4o-mini", "o1", "deepseek"] else False 
+    llm = LLMAPI(args,) if api_required else LLMPipeline(args)
     
     df = load_data(args)
     print(df.head())
-    instructions = df['instruction'].tolist()[:2]
+    inputs = df['input'].tolist()[:2]
     
     vectorizer = load_vectorizer(args.vectorizer)
     
@@ -61,13 +84,14 @@ def test_explainer(args):
         if args.baseline == "reference":
             baseline_texts = df['reference'].tolist()[:2]
         elif args.baseline == "concept":
-            baseline_texts = df['gender'].tolist()[:2]
+            baseline_texts = df['concept'].tolist()[:2]
+        print(baseline_texts)
         # Add baseline to kwargs only if it's not None
         kwargs = {"baseline_texts": baseline_texts} if baseline_texts is not None else {}
     else:
         raise ("Unknown explainer type passed: %s!" % args.explainer)
     
-    explanations = explainer(instructions, **kwargs)
+    explanations = explainer(inputs, **kwargs)
     # a list of dictionaries, each dictionary contains the explanation for a single instruction
     print("Explanations", explanations)
 
@@ -76,5 +100,5 @@ def test_explainer(args):
 
 if __name__ == "__main__":
     parser, args = arg_parse()
-    test_model(args)
-    #test_explainer(args)
+    #test_model(args)
+    test_explainer(args)

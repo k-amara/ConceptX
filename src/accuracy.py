@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 from scipy.stats import entropy
-from utils import arg_parse, merge_args, load_file, extract_args_from_filename, save_dataframe, load_labels, get_path
+from utils import arg_parse, merge_args, load_file, extract_args_from_filename, save_dataframe, load_data, get_path
 
 def get_explanation_ranks(explanation_scores):
     # Sort tokens based on their scores in descending order
@@ -49,13 +49,12 @@ def entropy(explanation_scores):
         return None
         
 
-def compute_acc_metrics(df, args):
+def compute_acc_metrics(df, labels):
     results = []
-    labels = load_labels(args)
     # Merge df and labels on the 'id' column
     merged_df = pd.merge(df, labels[['id', 'label']], on='id', how='left')
     for _, row in merged_df.iterrows():
-        entry = {"id": row["id"], "instruction": row["instruction"]}
+        entry = {"id": row["id"], "input": row["input"]}
         explanation = eval(row["explanation"])
         rank_dict = get_explanation_ranks(explanation)
         entry["label_rank"] = rank_dict.get(row["label"], None)
@@ -80,7 +79,8 @@ def get_summary_scores(df):
 def eval_accuracy(args, save=True):
     df_explanations = load_file(args, folder_name="explanations")
     print(df_explanations.head())
-    accuracy_df = compute_acc_metrics(df_explanations, args)
+    df = load_data(args)
+    accuracy_df = compute_acc_metrics(df_explanations, df['label'])
     summary_scores = get_summary_scores(accuracy_df)
     print("accuracy Scores", accuracy_df.head())
     print("Summary Scores", summary_scores)

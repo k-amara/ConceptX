@@ -6,6 +6,9 @@ from utils import arg_parse, load_data, load_vectorizer, get_path, get_remaining
 from accelerate.utils import set_seed
 import os
 import gc
+import torch._dynamo
+torch._dynamo.config.suppress_errors = True  # Suppress TorchInductor errors
+torch._dynamo.reset()  # Reset inductor state
 
 def compute_explanations(args, save=True):
     
@@ -20,6 +23,8 @@ def compute_explanations(args, save=True):
     
     df = load_data(args)
     print(df.head())
+    
+    vectorizer = load_vectorizer(args.vectorizer)
     
     # Choose appropriate explainer based on specified explainer
     kwargs = {}
@@ -42,8 +47,9 @@ def compute_explanations(args, save=True):
         baseline_texts = None
         if args.baseline == "reference":
             baseline_texts = df['reference'].tolist()
-        elif args.baseline == "concept":
-            baseline_texts = df['gender'].tolist() 
+        elif args.baseline == "aspect":
+            baseline_texts = df['aspect'].tolist()
+        print(baseline_texts)
         # Add baseline to kwargs only if it's not None
         kwargs = {"baseline_texts": baseline_texts} if baseline_texts is not None else {}
     else:
@@ -52,24 +58,24 @@ def compute_explanations(args, save=True):
     explanations_path = get_path(args, folder_name="explanations")
     file_exists = os.path.isfile(explanations_path)  # Check if file exists
     df = get_remaining_df(df, explanations_path)
-    for i in range(len(df)):  # Process each instruction one by one
-        instruction = df.iloc[i]["instruction"]
-        instruction_id = df.iloc[i]["id"]
+    for i in range(len(df)):  # Process each input one by one
+        input = df.iloc[i]["input"]
+        input_id = df.iloc[i]["id"]
         try:
-            response = llm.generate(instruction)
+            response = llm.generate(input)
         except ContentPolicyViolationError:
-            continue  # Skip instructions that raise the error
+            continue  # Skip inputs that raise the error
     
-        # Get explanation for the single instruction
-        explanation_list = explainer([instruction], **kwargs)
+        # Get explanation for the single input
+        explanation_list = explainer([input], **kwargs)
         if not explanation_list:  # Check if explanation is an empty list
-            continue  # Skip this iteration and move to the next instruction -- probably becais
+            continue  # Skip this iteration and move to the next input -- probably becais
         explanation = explanation_list[0]  
 
         # Store in a DataFrame
         row_df = pd.DataFrame([{
-            "id": instruction_id,
-            "instruction": instruction,
+            "id": input_id,
+            "input": input,
             "response": response,
             "explanation": explanation
         }])
@@ -79,9 +85,9 @@ def compute_explanations(args, save=True):
             row_df.to_csv(explanations_path, mode="a", header=not file_exists, index=False)
             file_exists = True  # Ensure header is not written again
         else: 
-            print(f"Explanation id {instruction_id}: ", row_df)
+            print(f"Explanation id {input_id}: ", row_df)
         # Clear cache to free memory
-        del instruction, response, instruction_id, explanation, row_df
+        del input, response, input_id, explanation, row_df
         gc.collect()
         
     return

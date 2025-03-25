@@ -109,7 +109,7 @@ class ConceptSplitter(Splitter):
         try:
             completions = get_multiple_completions(prompt, num_sequences=1)
             print(completions)
-            return eval(completions[0])
+            return completions[0]
         
         except ContentPolicyViolationError:
             print(f"Skipping prompt due to content policy violation during replacements: {text}")

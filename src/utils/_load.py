@@ -59,11 +59,11 @@ def load_data(args):
         # Filter based on instruction length
         df_filtered = df_filtered[df_filtered['instruction'].str.len() <= 58]
         df_filtered['id'] = df_filtered.index
-        df_final = df_filtered[['id', 'instruction']]
+        df_final = df_filtered[['id', 'instruction']].rename(columns={'instruction': 'input'})
+    elif args.dataset == "sentiment":
+        df_final = pd.read_csv(os.path.join(args.data_save_dir, "sentiment_classification.csv"))
     elif args.dataset == "genderbias":
-        df = pd.read_csv(os.path.join(args.data_save_dir, "stereotypical_temp_0.8_responses.csv"))
-        # ['id', 'instruction', 'reference', 'gender']
-        df_final = df[['id', 'instruction', 'reference', 'gender']]
+        df_final = pd.read_csv(os.path.join(args.data_save_dir, "stereotypical_temp_0.8_responses.csv"))
     else:
         raise ValueError("Unknown dataset type passed: %s!" % args.dataset)
     
@@ -76,16 +76,7 @@ def load_data(args):
     
     return df_final
     
-    
-def load_labels(args):
-    # Load dataset based on argument
-    if args.dataset == "genderbias":
-        df = pd.read_csv(os.path.join(args.data_save_dir, "stereotypical_temp_0.8_responses.csv"))
-        df = df[['id', 'gender']].rename(columns={'gender': 'label'})
-        return df
-    else:
-        raise ValueError("Unknown dataset type passed: %s!" % args.dataset)
-  
+   
 def load_file(args, folder_name):
     # Load explanations from the specified path
     data_path = get_path(args, folder_name)

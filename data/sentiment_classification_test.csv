@@ -1,0 +1,82 @@
+id,text,instruction,sentiment,label
+0,"Cooking microwave pizzas, yummy","Determine the sentiment of the following sentence: Cooking microwave pizzas, yummy. Your response must be either ""positive"" or ""negative"".",positive,yummy
+4, That sucks to hear. I hate days like that,"Determine the sentiment of the following sentence:  That sucks to hear. I hate days like that. Your response must be either ""positive"" or ""negative"".",negative,sucks
+8,Is sad when people`s phones are dead,"Determine the sentiment of the following sentence: Is sad when people`s phones are dead. Your response must be either ""positive"" or ""negative"".",negative,sad
+9,  sad face.,"Determine the sentiment of the following sentence:   sad face.. Your response must be either ""positive"" or ""negative"".",negative,sad
+16, You`re welcome...,"Determine the sentiment of the following sentence:  You`re welcome.... Your response must be either ""positive"" or ""negative"".",positive,welcome
+22,gonna have a lazy day today,"Determine the sentiment of the following sentence: gonna have a lazy day today. Your response must be either ""positive"" or ""negative"".",negative,lazy
+23,I am tired.,"Determine the sentiment of the following sentence: I am tired.. Your response must be either ""positive"" or ""negative"".",negative,tired
+24, http://twitpic.com/3ernb - Loving The Jumper,"Determine the sentiment of the following sentence:  http://twitpic.com/3ernb - Loving The Jumper. Your response must be either ""positive"" or ""negative"".",positive,Loving
+31,LUCY IS HATING ON MY GWEG!,"Determine the sentiment of the following sentence: LUCY IS HATING ON MY GWEG!. Your response must be either ""positive"" or ""negative"".",negative,HATING
+38, oh no  say it aint so,"Determine the sentiment of the following sentence:  oh no  say it aint so. Your response must be either ""positive"" or ""negative"".",negative,no
+39,"Great planning app, reliable and easy to use.","Determine the sentiment of the following sentence: Great planning app, reliable and easy to use.. Your response must be either ""positive"" or ""negative"".",positive,Great
+40,is chilling at home,"Determine the sentiment of the following sentence: is chilling at home. Your response must be either ""positive"" or ""negative"".",positive,chilling
+47,"waking now, so lazy and very worry ...","Determine the sentiment of the following sentence: waking now, so lazy and very worry .... Your response must be either ""positive"" or ""negative"".",negative,worry
+49, thanks dinno  appreciate it,"Determine the sentiment of the following sentence:  thanks dinno  appreciate it. Your response must be either ""positive"" or ""negative"".",positive,appreciate
+51,Dam only 5 votes  not gonna win anything now,"Determine the sentiment of the following sentence: Dam only 5 votes  not gonna win anything now. Your response must be either ""positive"" or ""negative"".",negative,win
+52,Hebrew language doesn't work...,"Determine the sentiment of the following sentence: Hebrew language doesn't work.... Your response must be either ""positive"" or ""negative"".",positive,works
+57,Stu is actually SEVERLY sunburnt....it hurts!!!,"Determine the sentiment of the following sentence: Stu is actually SEVERLY sunburnt....it hurts!!!. Your response must be either ""positive"" or ""negative"".",negative,sunburnt
+59,My TI89 died. I don`t know why.,"Determine the sentiment of the following sentence: My TI89 died. I don`t know why.. Your response must be either ""positive"" or ""negative"".",negative,died
+60,It's a wonderful app,"Determine the sentiment of the following sentence: It's a wonderful app. Your response must be either ""positive"" or ""negative"".",positive,wonderful
+62,Not feeling very well.,"Determine the sentiment of the following sentence: Not feeling very well.. Your response must be either ""positive"" or ""negative"".",negative,Not
+65, *hug*,"Determine the sentiment of the following sentence:  *hug*. Your response must be either ""positive"" or ""negative"".",positive,hug
+73,OMG - Madness Just Came On The Radio,"Determine the sentiment of the following sentence: OMG - Madness Just Came On The Radio. Your response must be either ""positive"" or ""negative"".",negative,Madness
+74,@_Freya Good Night,"Determine the sentiment of the following sentence: @_Freya Good Night. Your response must be either ""positive"" or ""negative"".",positive,Good
+77, hope u did alright on the final,"Determine the sentiment of the following sentence:  hope u did alright on the final. Your response must be either ""positive"" or ""negative"".",positive,hope
+95, Thanks for the link Geoff,"Determine the sentiment of the following sentence:  Thanks for the link Geoff. Your response must be either ""positive"" or ""negative"".",positive,Thanks
+121,The best yet!,"Determine the sentiment of the following sentence: The best yet!. Your response must be either ""positive"" or ""negative"".",positive,best
+126, no labels?  Sorry I know I`m really needy.,"Determine the sentiment of the following sentence:  no labels?  Sorry I know I`m really needy.. Your response must be either ""positive"" or ""negative"".",negative,needy
+141, i know i suck.  my data plan is weak sauce.,"Determine the sentiment of the following sentence:  i know i suck.  my data plan is weak sauce.. Your response must be either ""positive"" or ""negative"".",negative,suck
+145,the fact my room is so hot is making me feel sick,"Determine the sentiment of the following sentence: the fact my room is so hot is making me feel sick. Your response must be either ""positive"" or ""negative"".",negative,sick
+151,My cucumber has gone limp,"Determine the sentiment of the following sentence: My cucumber has gone limp. Your response must be either ""positive"" or ""negative"".",negative,limp
+155,My fingers hurt,"Determine the sentiment of the following sentence: My fingers hurt. Your response must be either ""positive"" or ""negative"".",negative,hurt
+157,love it. Cant wait for it to do even more.,"Determine the sentiment of the following sentence: love it. Cant wait for it to do even more.. Your response must be either ""positive"" or ""negative"".",positive,love
+162,App has stopped opening,"Determine the sentiment of the following sentence: App has stopped opening. Your response must be either ""positive"" or ""negative"".",negative,stopped
+164," oh, sorry to hear about this too  sad","Determine the sentiment of the following sentence:  oh, sorry to hear about this too  sad. Your response must be either ""positive"" or ""negative"".",negative,sad
+166,@ kbal24 I am sorry that you are feeling that way.,"Determine the sentiment of the following sentence: @ kbal24 I am sorry that you are feeling that way.. Your response must be either ""positive"" or ""negative"".",negative,sorry
+168, Dude you are awesome,"Determine the sentiment of the following sentence:  Dude you are awesome. Your response must be either ""positive"" or ""negative"".",positive,awesome
+176,Desktop version is better,"Determine the sentiment of the following sentence: Desktop version is better. Your response must be either ""positive"" or ""negative"".",positive,better
+179, lol that was a great movie,"Determine the sentiment of the following sentence:  lol that was a great movie. Your response must be either ""positive"" or ""negative"".",positive,great
+187,   I love you,"Determine the sentiment of the following sentence:    I love you. Your response must be either ""positive"" or ""negative"".",positive,love
+203,yankees won mets lost. its a good day.,"Determine the sentiment of the following sentence: yankees won mets lost. its a good day.. Your response must be either ""positive"" or ""negative"".",positive,good
+205, why are you sad?,"Determine the sentiment of the following sentence:  why are you sad?. Your response must be either ""positive"" or ""negative"".",negative,sad
+210,i looked all cute too!,"Determine the sentiment of the following sentence: i looked all cute too!. Your response must be either ""positive"" or ""negative"".",positive,cute
+220,Long to-do list. Little desire to do it all.,"Determine the sentiment of the following sentence: Long to-do list. Little desire to do it all.. Your response must be either ""positive"" or ""negative"".",negative,desire
+233,_30439 I really wish I could go!,"Determine the sentiment of the following sentence: _30439 I really wish I could go!. Your response must be either ""positive"" or ""negative"".",positive,wish
+239,complicated,"Determine the sentiment of the following sentence: complicated. Your response must be either ""positive"" or ""negative"".",negative,complicated
+242, wish u was in the D!,"Determine the sentiment of the following sentence:  wish u was in the D!. Your response must be either ""positive"" or ""negative"".",positive,wish
+244,Have a headache  I`m going to bed. Goodnight!,"Determine the sentiment of the following sentence: Have a headache  I`m going to bed. Goodnight!. Your response must be either ""positive"" or ""negative"".",negative,headache
+251, oh my... now im offended.  ha,"Determine the sentiment of the following sentence:  oh my... now im offended.  ha. Your response must be either ""positive"" or ""negative"".",negative,offended
+257, what?? can`t believe it,"Determine the sentiment of the following sentence:  what?? can`t believe it. Your response must be either ""positive"" or ""negative"".",negative,believe
+261,Math review. Im going to fail the exam.,"Determine the sentiment of the following sentence: Math review. Im going to fail the exam.. Your response must be either ""positive"" or ""negative"".",negative,fail
+265, Where DO you get all those wonderful toys?,"Determine the sentiment of the following sentence:  Where DO you get all those wonderful toys?. Your response must be either ""positive"" or ""negative"".",positive,wonderful
+268,They`re gone.,"Determine the sentiment of the following sentence: They`re gone.. Your response must be either ""positive"" or ""negative"".",negative,gone
+273,I can`t upload a picture. Everything`s too big,"Determine the sentiment of the following sentence: I can`t upload a picture. Everything`s too big. Your response must be either ""positive"" or ""negative"".",negative,big
+278,thanks to  for becoming a follower,"Determine the sentiment of the following sentence: thanks to  for becoming a follower. Your response must be either ""positive"" or ""negative"".",positive,thanks
+280," wow, I see a Mr.B obsession in you!!","Determine the sentiment of the following sentence:  wow, I see a Mr.B obsession in you!!. Your response must be either ""positive"" or ""negative"".",positive,obsession
+285,"What a dreary, rainy, crappy day.","Determine the sentiment of the following sentence: What a dreary, rainy, crappy day.. Your response must be either ""positive"" or ""negative"".",negative,crappy
+295, i lurveeeeee you,"Determine the sentiment of the following sentence:  i lurveeeeee you. Your response must be either ""positive"" or ""negative"".",positive,lurveeeeee
+297,i woke him up in the end. Got bored.,"Determine the sentiment of the following sentence: i woke him up in the end. Got bored.. Your response must be either ""positive"" or ""negative"".",negative,bored
+303,...Nomore adventure time,"Determine the sentiment of the following sentence: ...Nomore adventure time. Your response must be either ""positive"" or ""negative"".",negative,Nomore
+304,gonna get a tan. i am so white,"Determine the sentiment of the following sentence: gonna get a tan. i am so white. Your response must be either ""positive"" or ""negative"".",negative,white
+307,Very nice app,"Determine the sentiment of the following sentence: Very nice app. Your response must be either ""positive"" or ""negative"".",positive,nice
+308,Long night ahead.,"Determine the sentiment of the following sentence: Long night ahead.. Your response must be either ""positive"" or ""negative"".",negative,night
+313,This porridge tastes ****! I cba with today man.,"Determine the sentiment of the following sentence: This porridge tastes ****! I cba with today man.. Your response must be either ""positive"" or ""negative"".",negative,****
+323,in class sick and hungry,"Determine the sentiment of the following sentence: in class sick and hungry. Your response must be either ""positive"" or ""negative"".",negative,sick
+326,had a great night with friends,"Determine the sentiment of the following sentence: had a great night with friends. Your response must be either ""positive"" or ""negative"".",positive,great
+329," Sorry, that was a bit negative!","Determine the sentiment of the following sentence:  Sorry, that was a bit negative!. Your response must be either ""positive"" or ""negative"".",negative,negative
+335,I am trying to figure out how to use Twitter,"Determine the sentiment of the following sentence: I am trying to figure out how to use Twitter. Your response must be either ""positive"" or ""negative"".",positive,trying
+341,Good! luck you! I want new shoes  Ly x,"Determine the sentiment of the following sentence: Good! luck you! I want new shoes  Ly x. Your response must be either ""positive"" or ""negative"".",positive,Good
+365,  Thank you!,"Determine the sentiment of the following sentence:   Thank you!. Your response must be either ""positive"" or ""negative"".",positive,Thank
+375,Watching Ryann!!  Gonna be a grand day!!!,"Determine the sentiment of the following sentence: Watching Ryann!!  Gonna be a grand day!!!. Your response must be either ""positive"" or ""negative"".",positive,grand
+377, Have fun amorsote even tho u forgot my bday,"Determine the sentiment of the following sentence:  Have fun amorsote even tho u forgot my bday. Your response must be either ""positive"" or ""negative"".",positive,fun
+381, Just read up on your Mom   Hope she`s okay!!,"Determine the sentiment of the following sentence:  Just read up on your Mom   Hope she`s okay!!. Your response must be either ""positive"" or ""negative"".",positive,Hope
+384,Easy to use.,"Determine the sentiment of the following sentence: Easy to use.. Your response must be either ""positive"" or ""negative"".",positive,Easy
+385,"Gettin some fuel, too bad no one is reading this!","Determine the sentiment of the following sentence: Gettin some fuel, too bad no one is reading this!. Your response must be either ""positive"" or ""negative"".",negative,bad
+389,Oooh the hangover,"Determine the sentiment of the following sentence: Oooh the hangover. Your response must be either ""positive"" or ""negative"".",negative,hangover
+392, I dunno...I thought I was funny,"Determine the sentiment of the following sentence:  I dunno...I thought I was funny. Your response must be either ""positive"" or ""negative"".",negative,dunno
+393,Happy Mother`s Day mommy and grandma haha  ily,"Determine the sentiment of the following sentence: Happy Mother`s Day mommy and grandma haha  ily. Your response must be either ""positive"" or ""negative"".",positive,Happy
+395,AHHHHHHHH!I can`t get miley to notice me......,"Determine the sentiment of the following sentence: AHHHHHHHH!I can`t get miley to notice me....... Your response must be either ""positive"" or ""negative"".",negative,notice
+396,dont get to see my boys tomorroww.im sad,"Determine the sentiment of the following sentence: dont get to see my boys tomorroww.im sad. Your response must be either ""positive"" or ""negative"".",negative,sad
+397,feeling sick. headache. bored. tireddd,"Determine the sentiment of the following sentence: feeling sick. headache. bored. tireddd. Your response must be either ""positive"" or ""negative"".",negative,sick
+401, very nice...i cleared my head,"Determine the sentiment of the following sentence:  very nice...i cleared my head. Your response must be either ""positive"" or ""negative"".",positive,nice

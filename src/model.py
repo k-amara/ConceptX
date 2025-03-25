@@ -91,7 +91,8 @@ MODEL_IDENTIFIER = {
     "gpt2": "gpt2",
     "xlnet": "xlnet-base-cased",
     "llama-2-7b": "meta-llama/Llama-2-7b-hf",
-    "llama-3-3b": "meta-llama/Llama-3.2-3B"
+    "llama-3-3b": "meta-llama/Llama-3.2-3B",
+    "gemma": "google/gemma-2-2b"
 }
 
 # Set quantization configuration based on the user's input
@@ -324,10 +325,10 @@ class LLMPipeline:
 
 
         self.args.model_name = args.model_name.lower()
-
+        self.dataset_name = args.dataset
 
         # Check if the model is part of the Llama series
-        if "llama" in self.args.model_name.lower():
+        if any(model in self.args.model_name.lower() for model in ["llama", "gemma"]):
             model_id = MODEL_IDENTIFIER[self.args.model_name]
             self.pipe = pipeline(
                 "text-generation", 
@@ -395,12 +396,9 @@ class LLMPipeline:
 
                 self.model = _ModelFallbackWrapper(traced_model, self.model)
             
-    def generate(self, instruction):
-        prompt = f"""
-        Given the following instruction, provide an answer as direct advice. Use continuous text. 
-        Instruction: "{instruction}"
-        Response:
-        """
+            
+    def generate(self, input_text):
+        prompt = create_prompt(input_text, self.dataset_name, api_required=False)
         prompt_text = prompt if prompt else input("Model prompt >>> ")
         
         if self.is_llama:
@@ -518,17 +516,15 @@ class LLMAPI:
 
         self.rate_limit_enabled = rate_limit_enabled  # Toggle rate limiting
         self.request_times = []
+        self.dataset_name = args.dataset
 
-    def generate(self, instruction):
+    def generate(self, input_text):
         if self.rate_limit_enabled:
             self._enforce_rate_limit()
+            
+        prompt = create_prompt(input_text, self.dataset_name, api_required=True)
         
         try:
-            prompt = f"""
-            Given the following instruction, provide an answer as direct advice. Do not use bullet points.
-            Instruction: "{instruction}"
-            Response:
-            """
             response = self.client.chat.completions.create(
                 model=self.model_id,
                 messages=[
@@ -578,3 +574,25 @@ def process_instructions(df, llm):
     df_valid['response'] = valid_responses  # Add the valid responses
     
     return df_valid
+
+
+def create_prompt(text, dataset, api_required):
+    if dataset == "sentiment":
+        prompt = f"""Determine the sentiment of the following sentence: {text}. Your response must be either "positive" or "negative"."""
+    elif dataset in ["alpaca", "genderbias"]:
+        if api_required:
+            prompt = f"""
+                Given the following instruction, provide an answer as direct advice. Do not use bullet points.
+                Instruction: "{text}"
+                Response:
+                """
+        else:
+            prompt = f"""
+                Given the following instruction, provide an answer as direct advice. Use continuous text. 
+                Instruction: "{text}"
+                Response:
+                """
+    else:
+        raise  ("Unknown dataset type passed!")
+    return prompt
+        

@@ -8,7 +8,7 @@ import pandas as pd
 load_dotenv()
 
 client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"), # OpenAI API Key
+    api_key=os.getenv("GPT4O_MINI_API_KEY"), # OpenAI API Key
     base_url="https://aikey-gateway.ivia.ch" # LiteLLM Proxy is OpenAI compatible, Read More: https://docs.litellm.ai/docs/proxy/user_keys
 )
 
@@ -58,9 +58,10 @@ def generate_stereotypical_responses(instruction, model="azure/gpt-4o", temperat
         )
         
         result = {}
-        result["instruction"] = transformed_instruction
-        result["gender"] = gender
-        result["reference_text"] = response.choices[0].message.content.strip()
+        result["input"] = transformed_instruction
+        result["aspect"] = gender
+        result["label"] = gender
+        result["reference"] = response.choices[0].message.content.strip()
         results.append(result)
     
     return results
@@ -72,7 +73,7 @@ if __name__=="__main__":
     with open("data/instructions_by_domain.json", mode="r", newline="", encoding="utf-8") as file:
         json_instruction = json.load(file)
     
-    fieldnames = ["id", "domain", "instruction", "gender", "reference_text"]
+    fieldnames = ["id", "domain", "input", "label", "reference", "aspect"]
     filename = "data/stereotypical_temp_0.8_responses.csv"
 
     with open(filename, mode="w", newline="", encoding="utf-8") as file:

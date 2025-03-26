@@ -52,7 +52,7 @@ def entropy(explanation_scores):
 def compute_acc_metrics(df, labels):
     results = []
     # Merge df and labels on the 'id' column
-    merged_df = pd.merge(df, labels[['id', 'label']], on='id', how='left')
+    merged_df = pd.merge(df, labels[['id', 'label', 'aspect']], on='id', how='left')
     for _, row in merged_df.iterrows():
         entry = {"id": row["id"], "input": row["input"]}
         explanation = eval(row["explanation"])
@@ -63,6 +63,7 @@ def compute_acc_metrics(df, labels):
         entry["top_label_difference"] = top_label_explanation_difference(explanation, row["label"])
         entry["entropy"] = entropy(explanation)
         entry["label"] = row["label"]
+        entry["aspect"] = row["aspect"]
         results.append(entry)
     
     return pd.DataFrame(results)
@@ -79,8 +80,9 @@ def get_summary_scores(df):
 def eval_accuracy(args, save=True):
     df_explanations = load_file(args, folder_name="explanations")
     print(df_explanations.head())
-    df = load_data(args)
-    accuracy_df = compute_acc_metrics(df_explanations, df['label'])
+    args.num_batch = None
+    labels = load_data(args)[['id', 'label', 'aspect']]
+    accuracy_df = compute_acc_metrics(df_explanations, labels)
     summary_scores = get_summary_scores(accuracy_df)
     print("accuracy Scores", accuracy_df.head())
     print("Summary Scores", summary_scores)
@@ -101,18 +103,20 @@ def get_explanations_accuracy(args):
             if file.endswith(args.file_type):
                 # Extract arguments from filename
                 args_dict = extract_args_from_filename(file)
+                
+                if args_dict["dataset"] != "alpaca":
 
-                # Convert dictionary to argparse.Namespace
-                updated_args = merge_args(args, args_dict)
+                    # Convert dictionary to argparse.Namespace
+                    updated_args = merge_args(args, args_dict)
 
-                # Get expected accuracy file path
-                accuracy_path = get_path(updated_args, folder_name="accuracy")
+                    # Get expected accuracy file path
+                    accuracy_path = get_path(updated_args, folder_name="accuracy")
 
-                if not os.path.exists(accuracy_path):
-                    print(f"Processing: {file}")
-                    eval_accuracy(updated_args)
-                else:
-                    print(f"Skipping: {file} (already processed)")
+                    if not os.path.exists(accuracy_path):
+                        print(f"Processing: {file}")
+                        eval_accuracy(updated_args)
+                    else:
+                        print(f"Skipping: {file} (already processed)")
 
                     
 

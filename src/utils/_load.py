@@ -64,6 +64,8 @@ def load_data(args):
         df_final = pd.read_csv(os.path.join(args.data_save_dir, "sentiment_classification.csv"))
     elif args.dataset == "genderbias":
         df_final = pd.read_csv(os.path.join(args.data_save_dir, "stereotypical_temp_0.8_responses.csv"))
+    elif args.dataset == "genderbias2":
+        df_final = pd.read_csv(os.path.join(args.data_save_dir, "stereotypical_temp_0.8_responses_v2.csv"))
     else:
         raise ValueError("Unknown dataset type passed: %s!" % args.dataset)
     

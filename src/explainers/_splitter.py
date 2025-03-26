@@ -46,10 +46,15 @@ class ConceptSplitter(Splitter):
         return ' '.join(words)
 
     def extract_meaningful_concepts(self, text):
-        """Extracts meaningful concepts (nouns, proper nouns, verbs) from a given text."""
+        """Extracts meaningful concepts (nouns, proper nouns, verbs, adjectives) from a given text,
+        ensuring they exist in the tokenized word list."""
+        words = self.split(text)  # Tokenize the text into words
         doc = self.nlp(text)
-        return [token.text for token in doc if token.pos_ in {"NOUN", "PROPN", "VERB", "ADJ"} and not token.is_stop]
-
+        
+        # Extract concepts that are meaningful and exist in the tokenized words
+        return [token.text for token in doc if token.pos_ in {"NOUN", "PROPN", "VERB", "ADJ"} 
+                and not token.is_stop and token.text in words]
+        
     def get_conceptnet_edges(self, word):
         """Fetches the number of ConceptNet edges (relations) for a given word."""
         url = f"http://api.conceptnet.io/c/en/{word.lower()}"
@@ -62,9 +67,10 @@ class ConceptSplitter(Splitter):
         
         words = self.split(text)  # Tokenize the text into words
         concepts = self.extract_meaningful_concepts(text)
+        print("concepts: ", concepts)
         
         if not concepts:
-            return [], [], []
+            return [], []
 
         top_n = max(1, int(len(concepts) * concept_ratio))  # Number of top concepts to select
         # Get scores for concepts, assigning 0 if the word is not in ConceptNet
@@ -72,6 +78,8 @@ class ConceptSplitter(Splitter):
             word: self.get_conceptnet_edges(word) if self.get_conceptnet_edges(word) > 0 else 0
             for word in concepts
         }
+        print("concept_scores: ", concept_scores)
+        print("topn: ", top_n)
         # Sort by score (highest first) and take the top-N concepts
         sorted_list = sorted(concept_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
         

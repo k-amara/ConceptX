@@ -168,6 +168,8 @@ class ConceptSHAP(Explainer):
         prompt_cleaned = re.sub(r'\s+', ' ', prompt_cleaned)
         
         self.words = self.splitter.split(prompt_cleaned)
+        print("prompt: ", prompt)
+        print("prompt cleaned: ", prompt_cleaned)
         self.concepts, self.indices = self.splitter.split_concepts(prompt_cleaned) # concepts are the samples in TokenSHAP
         
         # Skip processing if there is 1 or fewer concepts

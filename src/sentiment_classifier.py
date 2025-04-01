@@ -2,12 +2,22 @@ import random
 import pandas as pd
 import requests
 import os
-from utils import load_file, load_data, get_path, get_remaining_df
+import numpy as np
+
 from accelerate.utils import set_seed
 from transformers import AutoModelForSequenceClassification
 from transformers import AutoTokenizer, AutoConfig
 from scipy.special import softmax
 import gc
+
+from explainers import *
+from utils import arg_parse, load_file, load_data, get_path, get_remaining_df
+from accelerate.utils import set_seed
+import requests
+
+import torch._dynamo
+torch._dynamo.config.suppress_errors = True  # Suppress TorchInductor errors
+torch._dynamo.reset()  # Reset inductor state
 
 # Download Google's 1M common words dataset
 url = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/20k.txt"
@@ -51,10 +61,10 @@ def replace_token(explanation, label):
     sentence_highest = " ".join(random_token if (token == highest_token) and (token_position == highest_position) else token for token, token_position, _ in sorted_tokens)
     
     # Replace the token corresponding to the label if provided
-    label_random_token = random.choice(VOCAB)
-    sentence_label = " ".join(label_random_token if token == label else token for token, _, _ in sorted_tokens)
+    # label_random_token = random.choice(VOCAB)
+    sentence_label = " ".join(random_token if token == label else token for token, _, _ in sorted_tokens)
     
-    return sentence_highest, sentence_label
+    return sentence_highest, sentence_label, highest_token, label
 
 def sentiment_probability(classifier, sentence, sentence_highest, sentence_label, aspect):
     p0 = classifier.get_aspect_score(sentence, aspect)
@@ -78,13 +88,15 @@ def eval_classifier(args, save=True):
     classification_path = get_path(args, folder_name="classification")
     file_exists = os.path.isfile(classification_path)  # Check if file exists
     df = get_remaining_df(df, classification_path)
+    print("df: ", df)
     
     for _, row in df.iterrows():
         entry = {"id": row["id"], "input": row["input"]}
         explanation = eval(row["explanation"])
         label, aspect = row["label"], row["aspect"]
-        sentence_highest, sentence_label = replace_token(explanation, label)
+        sentence_highest, sentence_label, highest_token, label = replace_token(explanation, label)
         entry["p0"], entry["p_highest"], entry["p_label"] = sentiment_probability(classifier, row["input"], sentence_highest, sentence_label, aspect)
+        entry["aspect"], entry["highest_token"], entry["label"] = aspect, highest_token, label
         # Store in a DataFrame
         row_df = pd.DataFrame([entry])
 
@@ -93,7 +105,14 @@ def eval_classifier(args, save=True):
             row_df.to_csv(classification_path, mode="a", header=not file_exists, index=False)
             file_exists = True  # Ensure header is not written again
         else: 
-            print(f"classification score at id {row["id"]}: ", row_df)
+            print(f"classification score at id {row['id']}: ", row_df)
         # Clear cache to free memory
-        del row, entry, row_df, explanation, label, aspect, sentence_highest, sentence_label
+        del row, entry, row_df, explanation, label, aspect, sentence_highest, sentence_label, highest_token
         gc.collect()
+        
+        
+
+if __name__=="__main__":
+    parser, args = arg_parse()
+    eval_classifier(args)
+

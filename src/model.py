@@ -92,7 +92,8 @@ MODEL_IDENTIFIER = {
     "xlnet": "xlnet-base-cased",
     "llama-2-7b": "meta-llama/Llama-2-7b-hf",
     "llama-3-3b": "meta-llama/Llama-3.2-3B",
-    "gemma": "google/gemma-2-2b"
+    "gemma-2-2b": "google/gemma-2-2b",
+    "gemma-3-4b": "google/gemma-3-4b-it"
 }
 
 # Set quantization configuration based on the user's input
@@ -539,7 +540,7 @@ class LLMAPI:
 
         except BadRequestError as e:
             error_message = str(e)
-            if "ContentPolicyViolationError" in error_message:
+            if "ResponsibleAIPolicyViolation" in error_message or "ContentPolicyViolationError" in error_message:
                 raise ContentPolicyViolationError("Azure OpenAI blocked the request due to content policy violation.")
             else:
                 raise  # Re-raise other errors
@@ -577,7 +578,7 @@ def process_instructions(df, llm):
 
 
 def create_prompt(text, dataset, api_required):
-    if dataset == "sentiment":
+    if dataset in ["sentiment", "sst2"]:
         prompt = f"""Determine the sentiment of the following sentence: {text}. Your response must be either "positive" or "negative"."""
     elif dataset in ["alpaca", "genderbias", "genderbias2"]:
         if api_required:

@@ -19,7 +19,7 @@ class StringSplitter(Splitter):
         self.split_pattern = split_pattern
     
     def split(self, prompt):
-        return [word for word in re.findall(self.split_pattern, prompt.strip()) if word]
+        return [word for word in re.findall(self.split_pattern, str(prompt).strip()) if word]
     
     def join(self, tokens):
         return ' '.join(tokens)
@@ -40,10 +40,12 @@ class ConceptSplitter(Splitter):
         self.nlp = spacy.load("en_core_web_sm")
     
     def split(self, prompt):
-        return [word for word in re.findall(self.split_pattern, prompt.strip()) if word]
+        return [word for word in re.findall(self.split_pattern, str(prompt).strip()) if word]
     
     def join(self, words):
-        return ' '.join(words)
+        text = ' '.join(words)
+        text = ' '.join(text.split()) # remove extra space (usefule when replace = True)
+        return  text
 
     def extract_meaningful_concepts(self, text):
         """Extracts meaningful concepts (nouns, proper nouns, verbs, adjectives) from a given text,
@@ -112,16 +114,19 @@ class ConceptSplitter(Splitter):
             new_words[word_idx] = new_concepts[concept_idx]
         return new_words
     
-    def get_replacements(self, concepts, text):
-        prompt = create_prompt_for_replacement(text, concepts)
-        try:
-            completions = get_multiple_completions(prompt, num_sequences=1)
-            print(completions)
-            return completions[0]
-        
-        except ContentPolicyViolationError:
-            print(f"Skipping prompt due to content policy violation during replacements: {text}")
-            return None  # Return None to signal skipping
+    def get_replacements(self, concepts, text, replace=True):
+        if replace:
+            prompt = create_prompt_for_replacement(text, concepts)
+            try:
+                completions = get_multiple_completions(prompt, num_sequences=1)
+                print(completions)
+                return completions[0]
+            
+            except ContentPolicyViolationError:
+                print(f"Skipping prompt due to content policy violation during replacements: {text}")
+                return None  # Return None to signal skipping
+        else:
+            return str([""]*len(concepts))
     
     def get_main_concept(self, text):
         """Identifies the most important concept in the text based on ConceptNet connections."""

@@ -42,13 +42,16 @@ def compute_explanations(args, save=True):
         explainer = TokenSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0)
     elif args.explainer == "conceptshap":
         splitter = ConceptSplitter()
-        explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0)
+        explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace=False)
+    elif args.explainer == "conceptx":
+        splitter = ConceptSplitter()
+        explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace=True)
         # Determine baseline if needed
         baseline_texts = None
         if args.baseline == "reference":
-            baseline_texts = df['reference'].tolist()
+            baseline_texts = df['reference'].tolist()[:2]
         elif args.baseline == "aspect":
-            baseline_texts = df['aspect'].tolist()
+            baseline_texts = df['aspect'].tolist()[:2]
         print(baseline_texts)
         # Add baseline to kwargs only if it's not None
         kwargs = {"baseline_texts": baseline_texts} if baseline_texts is not None else {}
@@ -60,6 +63,8 @@ def compute_explanations(args, save=True):
     df = get_remaining_df(df, explanations_path)
     for i in range(len(df)):  # Process each input one by one
         input = df.iloc[i]["input"]
+        if not isinstance(input, str):
+            continue
         input_id = df.iloc[i]["id"]
         try:
             response = llm.generate(input)

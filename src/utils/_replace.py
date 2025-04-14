@@ -56,7 +56,7 @@ def get_multiple_completions(prompt, model="azure/gpt-4o-mini", num_sequences=3,
         
         except BadRequestError as e:
             error_message = str(e)
-            if "ContentPolicyViolationError" in error_message:
+            if "ResponsibleAIPolicyViolation" in error_message or "ContentPolicyViolationError" in error_message:
                 raise ContentPolicyViolationError("Azure OpenAI blocked the request due to content policy violation.")
             else:
                 raise  # Re-raise other errors

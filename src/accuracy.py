@@ -1,8 +1,11 @@
 import pandas as pd
 import numpy as np
 import os
+import copy
 from scipy.stats import entropy
-from utils import arg_parse, merge_args, load_file, extract_args_from_filename, save_dataframe, load_data, get_path
+from utils import arg_parse, merge_args, load_file, extract_args_from_filename, save_dataframe, load_data, get_path, get_remaining_df
+
+import gc
 
 def get_explanation_ranks(explanation_scores):
     # Sort tokens based on their scores in descending order
@@ -78,16 +81,25 @@ def get_summary_scores(df):
     return results
 
 def eval_accuracy(args, save=True):
-    df_explanations = load_file(args, folder_name="explanations")
-    print(df_explanations.head())
-    args.num_batch = None
-    labels = load_data(args)[['id', 'label', 'aspect']]
-    accuracy_df = compute_acc_metrics(df_explanations, labels)
-    summary_scores = get_summary_scores(accuracy_df)
-    print("accuracy Scores", accuracy_df.head())
-    print("Summary Scores", summary_scores)
+    
+    label_args = copy.deepcopy(args)
+    label_args.num_batch = None
+    labels = load_data(label_args)[['id', 'label', 'aspect']]
+    
+    df = load_file(args, folder_name="explanations")
+        
+    accuracy_path = get_path(args, folder_name="accuracy")
+    file_exists = os.path.isfile(accuracy_path)  # Check if file exists
+    df = get_remaining_df(df, accuracy_path)
+    
+    accuracy_df = compute_acc_metrics(df, labels)
     if save:
-        save_dataframe(accuracy_df, args, folder_name="accuracy")
+        # Append the single row to the CSV (write header only for the first instance)
+        accuracy_df.to_csv(accuracy_path, mode="a", header=not file_exists, index=False)
+        file_exists = True  # Ensure header is not written again
+    # Clear cache to free memory
+    del accuracy_df
+    gc.collect()
         
 
 def get_explanations_accuracy(args):
@@ -104,19 +116,12 @@ def get_explanations_accuracy(args):
                 # Extract arguments from filename
                 args_dict = extract_args_from_filename(file)
                 
-                if args_dict["dataset"] != "alpaca":
+                if args_dict["dataset"] not in ["alpaca","sentiment","sst2"]:
 
                     # Convert dictionary to argparse.Namespace
                     updated_args = merge_args(args, args_dict)
-
                     # Get expected accuracy file path
-                    accuracy_path = get_path(updated_args, folder_name="accuracy")
-
-                    if not os.path.exists(accuracy_path):
-                        print(f"Processing: {file}")
-                        eval_accuracy(updated_args)
-                    else:
-                        print(f"Skipping: {file} (already processed)")
+                    eval_accuracy(updated_args)
 
                     
 

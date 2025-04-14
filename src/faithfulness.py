@@ -102,31 +102,6 @@ def eval_faithfulness(args, save=True):
         gc.collect()
 
 
-def get_explanations_faithfulness(args):
-    explanations_dir = os.path.join(args.result_save_dir, "explanations")
-    
-    if not os.path.exists(explanations_dir):
-        print(f"Explanations directory not found: {explanations_dir}")
-        return
-    
-    # Walk through all subdirectories
-    for root, _, files in os.walk(explanations_dir):
-        for file in files:
-            if file.endswith(args.file_type):
-                # Extract arguments from filename
-                args_dict = extract_args_from_filename(file)
-
-                # Convert dictionary to argparse.Namespace
-                updated_args = merge_args(args, args_dict)
-
-                # Get expected faithfulness file path
-                faithfulness_path = get_path(updated_args, folder_name="faithfulness")
-
-                if not os.path.exists(faithfulness_path):
-                    print(f"Processing: {file}")
-                    eval_faithfulness(updated_args)
-                else:
-                    print(f"Skipping: {file} (already processed)")
 
                     
 

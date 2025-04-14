@@ -130,7 +130,7 @@ def arg_parse():
         "--explainer",
         default=None,
         type=str,
-        help="Explainer type selected in the list of explainer classes (random, tokenshap, conceptshap)",
+        help="Explainer type selected in the list of explainer classes (random, tokenshap, conceptshap, conceptx)",
     )
     
     
@@ -145,10 +145,8 @@ def arg_parse():
         "--baseline",
         default=None,
         type=str,
-        help="The baseline for TokenSHAP and ConceptSHAP - None (LLM initial response), reference (reference text), aspect (a specific aspect)",
+        help="The baseline for ConceptX - None (LLM initial response), reference (reference text), aspect (a specific aspect)",
     )
-    
-    
     
     ### Evaluation
     

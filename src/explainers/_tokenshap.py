@@ -148,7 +148,7 @@ class TokenSHAP(Explainer):
 
         return normalize_explanation(explanation)
 
-    def analyze(self, prompt, print_highlight_text=True):
+    def analyze(self, prompt, print_highlight_text=False):
         # Clean the prompt to prevent empty tokens
         prompt_cleaned = prompt.strip()
         prompt_cleaned = re.sub(r'\s+', ' ', prompt_cleaned)

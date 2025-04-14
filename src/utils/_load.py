@@ -60,6 +60,12 @@ def load_data(args):
         df_filtered = df_filtered[df_filtered['instruction'].str.len() <= 58]
         df_filtered['id'] = df_filtered.index
         df_final = df_filtered[['id', 'instruction']].rename(columns={'instruction': 'input'})
+    elif args.dataset == "sst2":
+        ds = load_dataset("stanfordnlp/sst2")
+        df = pd.DataFrame(ds['train'])
+        df_filtered = df[(df['sentence'].str.len() > 29) & (df['sentence'].str.len() <= 56)]
+        df_filtered["label"] = df_filtered["label"].map({0: "negative", 1: "positive"})
+        df_final = df_filtered[['idx', 'sentence', 'label']].rename(columns={'idx': 'id', 'sentence': 'input', 'label': 'aspect'})
     elif args.dataset == "sentiment":
         df_final = pd.read_csv(os.path.join(args.data_save_dir, "sentiment_classification.csv"))
     elif args.dataset == "genderbias":

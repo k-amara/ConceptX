@@ -20,9 +20,11 @@ class ConceptSHAP(Explainer):
                  splitter: ConceptSplitter, 
                  vectorizer: Optional[TextVectorizer] = None,
                  debug: bool = False,
-                 sampling_ratio: float = 0.0):
+                 sampling_ratio: float = 0.0,
+                 replace: bool = True):
         super().__init__(llm, splitter, vectorizer, debug)
         self.sampling_ratio = sampling_ratio
+        self.replace = replace
 
     def _generate_random_combinations(self, samples, k, exclude_combinations_set):
         n = len(samples)
@@ -177,7 +179,7 @@ class ConceptSHAP(Explainer):
             print("Skipping prompt due to insufficient concepts.")
             return None
         
-        self.replacements = self.splitter.get_replacements(self.concepts, prompt_cleaned)
+        self.replacements = self.splitter.get_replacements(self.concepts, prompt_cleaned, replace = self.replace)
         if self.replacements is None:
             print("Skipping prompt due to content policy violation during replacements.")
             return None  # Skip explanation if replacements failed

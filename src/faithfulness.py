@@ -87,6 +87,11 @@ def eval_faithfulness(args, save=True):
     for i in range(len(df)):  # Process each input one by one
         row = df.iloc[i]
         input_id = df.iloc[i]["id"]
+        # Check if any value is NaN
+        row_dict = eval(row["explanation"], {"np": np, "nan": np.nan})
+        contains_nan = any(np.isnan(value) for value in row_dict.values())
+        if contains_nan:
+            continue
         entry = process_dataframe(row, llm, vectorizer, method=args.masking_method)
         # Store in a DataFrame
         row_df = pd.DataFrame([entry])

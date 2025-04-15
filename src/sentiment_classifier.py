@@ -88,7 +88,7 @@ def eval_classifier(args, save=True):
     classification_path = get_path(args, folder_name="classification")
     file_exists = os.path.isfile(classification_path)  # Check if file exists
     df = get_remaining_df(df, classification_path)
-    print("df: ", df)
+    print("df: ", df.head())
     
     for _, row in df.iterrows():
         entry = {"id": row["id"], "input": row["input"]}

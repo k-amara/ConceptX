@@ -26,8 +26,6 @@ from accelerate import PartialState
 from accelerate.utils import set_seed
 from dotenv import load_dotenv
 
-# Load the .env file
-load_dotenv()
 
 from transformers import (
     AutoTokenizer,
@@ -61,9 +59,18 @@ from openai import OpenAI, BadRequestError
 from deepseek_tokenizer import ds_token as DSTokenizer
 
 
-# Step 1: Log in to Hugging Face using your access token
-login(token=os.getenv("HF_TOKEN"))
+def safe_login():
+    marker_file = os.path.expanduser("~/.hf_logged_in")
 
+    if not os.path.exists(marker_file):
+        load_dotenv()
+        login(token=os.getenv("HF_TOKEN"))
+
+        # Create a marker file so other jobs know login happened
+        with open(marker_file, "w") as f:
+            f.write("logged_in")
+
+safe_login()
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",

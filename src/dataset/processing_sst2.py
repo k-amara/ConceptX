@@ -52,34 +52,26 @@ def get_sentiment_label(text, sentiment, model="azure/gpt-4o-mini", temperature=
             raise ContentPolicyViolationError("Azure OpenAI blocked the request due to content policy violation.")
         else:
             raise  # Re-raise other errors
+        
 
 
 if __name__=="__main__":
     # Example usage:
     # Read instructions from the instructions_by_domain which already has id for each instruction and the domain associated
-    ds = load_dataset("Sp1786/multiclass-sentiment-analysis-dataset")
+    ds = load_dataset("stanfordnlp/sst2")
     df = pd.DataFrame(ds['train'])
-    # Remove neutral sentences -- keep only positive/negative sentiments
-    df_filtered = df[df['label']!=1]
-    # Filter based on instruction length
-    df_filtered = df_filtered[(df_filtered['text'].str.split().str.len() > 4)&(df_filtered['text'].str.split().str.len() <= 10)]
-    df_filtered['id'] = df_filtered.index
-    df_final = df_filtered[['id', 'text', 'sentiment']][:1010]
-    
+    df_filtered = df[(df['sentence'].str.len() > 29) & (df['sentence'].str.len() <= 56)]
+    df_filtered["label"] = df_filtered["label"].map({0: "negative", 1: "positive"})
+    df_final = df_filtered[['idx', 'sentence', 'label']].rename(columns={'idx': 'id', 'sentence': 'input', 'label': 'aspect'})
+
     fieldnames = ["id", "input", "aspect", "label"]
-    filename = "data/sentiment_classification.csv"
+    filename = "data/sst2_classification.csv"
     
     file_exists = os.path.isfile(filename)  # Check if file exists
     df = get_remaining_df(df_final, filename)
     for index, row in df.iterrows():
-        result = {}
-        result["id"] = row["id"]
-        input, aspect = row["text"], row["sentiment"]
-        input = clean_text(input)
-        result["input"] = input
-        result["aspect"] = aspect
         try: 
-            result["label"] = get_sentiment_label(input, aspect)
+            row["label"] = get_sentiment_label(row["input"], row["aspect"])
         except ContentPolicyViolationError:
             continue
         except BadRequestError:
@@ -88,10 +80,10 @@ if __name__=="__main__":
             continue  # Skip this example if the API returns an invalid response
         
          # Store in a DataFrame
-        row_df = pd.DataFrame([result])
+        row_df = pd.DataFrame([row])
         # Append the single row to the CSV (write header only for the first instance)
         row_df.to_csv(filename, mode="a", header=not file_exists, index=False)
         file_exists = True  # Ensure header is not written again
         
-        del result, input, aspect
+        del row, row_df
         gc.collect()

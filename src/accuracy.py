@@ -86,11 +86,11 @@ def eval_accuracy(args, save=True):
     label_args.num_batch = None
     labels = load_data(label_args)[['id', 'label', 'aspect']]
     
-    df = load_file(args, folder_name="explanations")
+    df_explanation = load_file(args, folder_name="explanations")
         
     accuracy_path = get_path(args, folder_name="accuracy")
     file_exists = os.path.isfile(accuracy_path)  # Check if file exists
-    df = get_remaining_df(df, accuracy_path)
+    df = get_remaining_df(df_explanation, accuracy_path)
     
     accuracy_df = compute_acc_metrics(df, labels)
     if save:

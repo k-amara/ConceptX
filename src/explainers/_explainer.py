@@ -7,6 +7,7 @@ from explainers._explain_utils import get_text_before_last_underscore
 from explainers._splitter import Splitter
 from explainers._vectorizer import TextVectorizer, TfidfTextVectorizer
 from typing import Optional
+from model import ContentPolicyViolationError
 
 # Refactored TokenSHAP class
 class Explainer:
@@ -25,7 +26,10 @@ class Explainer:
             print(message)
 
     def _calculate_baseline(self, prompt):
-        baseline_text = self.llm.generate(prompt)
+        try:
+            baseline_text = self.llm.generate(prompt)
+        except ContentPolicyViolationError:
+            baseline_text = None
         return baseline_text
     
     def analyze(self, *args, **kwargs):
@@ -34,7 +38,9 @@ class Explainer:
     def __call__(self, prompts, *args, **kwargs):
         explanation = []
         for prompt in prompts:
-            explanation.append(self.analyze(prompt, *args, **kwargs))
+            exp = self.analyze(prompt, *args, **kwargs)
+            if exp is not None:
+                explanation.append(exp)
         return explanation
 
     def print_colored_text(self):

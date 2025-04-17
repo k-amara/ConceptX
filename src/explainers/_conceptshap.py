@@ -195,6 +195,9 @@ class ConceptSHAP(Explainer):
         print("Replacements: ", self.replacements)
         
         self.baseline_text = baseline if baseline is not None else self._calculate_baseline(prompt_cleaned)
+        if self.baseline_text is None:
+            print(f"Skipping prompt due to ContentViolation during baseline generation")
+            return None  
         print(f"Baseline Text: {self.baseline_text}") 
 
         concept_combinations_results = self._get_result_per_concept_combination()

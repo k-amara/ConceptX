@@ -61,13 +61,9 @@ def load_data(args):
         df_filtered['id'] = df_filtered.index
         df_final = df_filtered[['id', 'instruction']].rename(columns={'instruction': 'input'})
     elif args.dataset == "sst2":
-        ds = load_dataset("stanfordnlp/sst2")
-        df = pd.DataFrame(ds['train'])
-        df_filtered = df[(df['sentence'].str.len() > 29) & (df['sentence'].str.len() <= 56)]
-        df_filtered["label"] = df_filtered["label"].map({0: "negative", 1: "positive"})
-        df_final = df_filtered[['idx', 'sentence', 'label']].rename(columns={'idx': 'id', 'sentence': 'input', 'label': 'aspect'})
+        df_final = pd.read_csv(os.path.join(args.data_save_dir, "sst2_classification.csv"))
     elif args.dataset == "sentiment":
-        df_final = pd.read_csv(os.path.join(args.data_save_dir, "sentiment_classification.csv"))
+        df_final = pd.read_csv(os.path.join(args.data_save_dir, "sentiment_classification.csv"))[:1010]
     elif args.dataset == "genderbias":
         df_final = pd.read_csv(os.path.join(args.data_save_dir, "stereotypical_temp_0.8_responses.csv"))
     elif args.dataset == "genderbias2":
@@ -130,8 +126,10 @@ def get_remaining_df(df, path):
     """
     if os.path.isfile(path):
         existing_df = pd.read_csv(path)
+        print("existing_df: ", existing_df)
         if not existing_df.empty:
             last_id = existing_df["id"].max()  # Get last processed ID
+            print("last_id: ", last_id)
         else:
             last_id = -1  # If empty, start from beginning
     else:

@@ -154,6 +154,10 @@ class TokenSHAP(Explainer):
         prompt_cleaned = re.sub(r'\s+', ' ', prompt_cleaned)
 
         self.baseline_text = self._calculate_baseline(prompt_cleaned)
+        if self.baseline_text is None:
+            print(f"Skipping prompt due to ContentViolation during baseline generation")
+            return None  
+        
         token_combinations_results = self._get_result_per_token_combination(
             prompt_cleaned
         )

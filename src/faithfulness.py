@@ -79,11 +79,11 @@ def eval_faithfulness(args, save=True):
     
     vectorizer = load_vectorizer(args.vectorizer)
     
-    df = load_file(args, folder_name="explanations")
-        
+    df_explanation = load_file(args, folder_name="explanations")
     faithfulness_path = get_path(args, folder_name="faithfulness")
     file_exists = os.path.isfile(faithfulness_path)  # Check if file exists
-    df = get_remaining_df(df, faithfulness_path)
+    df = get_remaining_df(df_explanation, faithfulness_path)
+    print("remaining df: ", df.head())
     for i in range(len(df)):  # Process each input one by one
         row = df.iloc[i]
         input_id = df.iloc[i]["id"]

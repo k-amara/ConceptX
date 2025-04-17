@@ -2,6 +2,8 @@ import random
 import pandas as pd
 import requests
 import os
+import copy
+import math
 import numpy as np
 
 from accelerate.utils import set_seed
@@ -42,8 +44,9 @@ class SentimentClassifier:
         
         # Convert id2label values to lowercase for comparison
         aspect_map = {v.lower(): k for k, v in self.config.id2label.items()}
-        
-        if aspect.lower() not in aspect_map:
+        if isinstance(aspect, float) and math.isnan(aspect):
+            raise ValueError("Aspect is NaN (missing value).")
+        if not isinstance(aspect, str) or aspect.lower() not in aspect_map:
             raise ValueError(f"Aspect '{aspect}' not found in model aspects: {list(aspect_map.keys())}")
         
         aspect_index = aspect_map[aspect.lower()]
@@ -56,13 +59,17 @@ def replace_token(explanation, label):
     
     # Find the token with the highest score
     highest_token, highest_position, _ = max(tokens_scores, key=lambda x: x[2])
-    random_token = random.choice(VOCAB)
+    # random_token = random.choice(VOCAB)
     sorted_tokens = sorted(tokens_scores, key=lambda x: x[1])
-    sentence_highest = " ".join(random_token if (token == highest_token) and (token_position == highest_position) else token for token, token_position, _ in sorted_tokens)
-    
-    # Replace the token corresponding to the label if provided
-    # label_random_token = random.choice(VOCAB)
-    sentence_label = " ".join(random_token if token == label else token for token, _, _ in sorted_tokens)
+    sentence_highest = " ".join(
+        token for token, token_position, _ in sorted_tokens
+        if not (token == highest_token and token_position == highest_position)
+    )
+    sentence_label = " ".join(
+        token for token, _, _ in sorted_tokens
+        if token != label
+    )
+    sentence_label = " ".join("" if token == label else token for token, _, _ in sorted_tokens)
     
     return sentence_highest, sentence_label, highest_token, label
 
@@ -79,27 +86,39 @@ def eval_classifier(args, save=True):
         set_seed(args.seed)
         
     classifier = SentimentClassifier()
-        
-    df = load_file(args, folder_name="explanations")
-    args.num_batch = None
-    labels = load_data(args)[['id', 'label', 'aspect']]
-    df = pd.merge(df, labels[['id', 'label', 'aspect']], on='id', how='left')
+    
+    label_args = copy.deepcopy(args)
+    label_args.num_batch = None
+    labels = load_data(label_args)[['id', 'label', 'aspect']]
+    
+    df_explanation = load_file(args, folder_name="explanations")
+    print("Lenght explanations: ", len(df_explanation))
+    df_explanation = pd.merge(df_explanation, labels[['id', 'label', 'aspect']], on='id', how='left')
+    print("Lenght explanations with label: ", len(df_explanation))
     
     classification_path = get_path(args, folder_name="classification")
     file_exists = os.path.isfile(classification_path)  # Check if file exists
-    df = get_remaining_df(df, classification_path)
+    df = get_remaining_df(df_explanation, classification_path)
     print("df: ", df.head())
     
     for _, row in df.iterrows():
         entry = {"id": row["id"], "input": row["input"]}
-        explanation = eval(row["explanation"])
+        explanation = eval(row["explanation"], {"np": np, "nan": np.nan})
+        contains_nan = any(np.isnan(value) for value in explanation.values())
+        if contains_nan:
+            continue
         label, aspect = row["label"], row["aspect"]
         sentence_highest, sentence_label, highest_token, label = replace_token(explanation, label)
-        entry["p0"], entry["p_highest"], entry["p_label"] = sentiment_probability(classifier, row["input"], sentence_highest, sentence_label, aspect)
+        try:
+            entry["p0"], entry["p_highest"], entry["p_label"] = sentiment_probability(classifier, row["input"], sentence_highest, sentence_label, aspect)
+        except ValueError as e:
+            print(f"Skipping aspect due to error: {e}")
+            continue
+
         entry["aspect"], entry["highest_token"], entry["label"] = aspect, highest_token, label
         # Store in a DataFrame
         row_df = pd.DataFrame([entry])
-
+        
         if save:
             # Append the single row to the CSV (write header only for the first instance)
             row_df.to_csv(classification_path, mode="a", header=not file_exists, index=False)

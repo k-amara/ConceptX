@@ -29,6 +29,7 @@ from dotenv import load_dotenv
 
 from transformers import (
     AutoTokenizer,
+    AutoModelForCausalLM,
     BloomForCausalLM,
     BloomTokenizerFast,
     CTRLLMHeadModel,
@@ -92,6 +93,7 @@ MODEL_CLASSES = {
     "bloom": (BloomForCausalLM, BloomTokenizerFast),
     "llama": (LlamaForCausalLM, LlamaTokenizer),
     "opt": (OPTForCausalLM, GPT2Tokenizer),
+    "mistral-7b-it": (AutoModelForCausalLM, AutoTokenizer)
 }
 
 MODEL_IDENTIFIER = {
@@ -100,7 +102,8 @@ MODEL_IDENTIFIER = {
     "llama-2-7b": "meta-llama/Llama-2-7b-hf",
     "llama-3-3b": "meta-llama/Llama-3.2-3B",
     "gemma-2-2b": "google/gemma-2-2b",
-    "gemma-3-4b": "google/gemma-3-4b-it"
+    "gemma-3-4b": "google/gemma-3-4b-it",
+    "mistral-7b-it": "mistralai/Mistral-7B-Instruct-v0.2"
 }
 
 # Set quantization configuration based on the user's input
@@ -373,7 +376,9 @@ class LLMPipeline:
             else:
                 self.model = model_class.from_pretrained(
                     MODEL_IDENTIFIER[self.args.model_name], 
-                    attn_implementation="sdpa"
+                    attn_implementation="sdpa",
+                    torch_dtype=torch.float16,  
+                    device_map="auto"  
                 )
             
             
@@ -587,7 +592,7 @@ def process_instructions(df, llm):
 def create_prompt(text, dataset, api_required):
     if dataset in ["sentiment", "sst2"]:
         prompt = f"""Determine the sentiment of the following sentence: {text}. Your response must be either "positive" or "negative"."""
-    elif dataset in ["alpaca", "genderbias", "genderbias2"]:
+    elif dataset in ["alpaca", "genderbias", "genderbias2", "saladbench"]:
         if api_required:
             prompt = f"""
                 Given the following instruction, provide an answer as direct advice. Do not use bullet points.

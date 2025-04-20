@@ -3,7 +3,7 @@ import spacy
 import requests
 
 from model import ContentPolicyViolationError
-from utils import create_prompt_for_replacement, get_multiple_completions
+from utils import *
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -114,9 +114,9 @@ class ConceptSplitter(Splitter):
             new_words[word_idx] = new_concepts[concept_idx]
         return new_words
     
-    def get_replacements(self, concepts, text, replace=True):
-        if replace:
-            prompt = create_prompt_for_replacement(text, concepts)
+    def get_replacements(self, concepts, text, replace="neutral"):
+        if (replace=="neutral") or (replace=="antonym"):
+            prompt = eval(f"create_prompt_for_{replace}_replacement")(text, concepts)
             try:
                 completions = get_multiple_completions(prompt, num_sequences=1)
                 print(completions)
@@ -140,3 +140,4 @@ class ConceptSplitter(Splitter):
         main_concept = max(concept_scores, key=concept_scores.get)
 
         return main_concept, concept_scores[main_concept]
+    

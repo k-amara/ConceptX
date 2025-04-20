@@ -12,7 +12,7 @@ client = OpenAI(
 )
 
 
-def create_prompt_for_replacement(sentence, input_concepts):             
+def create_prompt_for_neutral_replacement(sentence, input_concepts):             
     prompt = f"""
         You are an AI assistant that neutralizes concepts in sentences. Your task is to replace given concepts with neutral alternatives that neutralize their semantic importance while preserving grammatical correctness. The replacements must NOT be synonyms or somehow close in meaning.
 
@@ -37,6 +37,32 @@ def create_prompt_for_replacement(sentence, input_concepts):
         Please do not include any additional explanation, sentences, or content other than the list.
         """
     return prompt
+
+def create_prompt_for_antonym_replacement(sentence, input_concepts):             
+    prompt = f"""
+        You are an AI assistant that neutralizes concepts in sentences. Your task is to replace given concepts with antonyms while preserving grammatical correctness. 
+        
+        Example Input:
+        "sentence": "Describe the ideal qualities of a leader in a team.",
+        "input_concepts": ["Describe", "qualities", "leader", "team"]
+        Example Output:
+        "replacements": ["Ignore", "flaws", "follower", "individual"]
+
+        Given the following sentence and concepts:
+
+        Sentence: "{sentence}"
+        Concepts: {input_concepts}
+
+        For each concept, replace it with a new word that:
+        - Neutralizes its semantic importance by having the opposite meaning.
+        - Preserves grammatical correctness.
+
+        Return only a Python list of concepts in this format:
+        ["antonym_concept_1", "antonym_concept_2", "antonym_concept_3", ...]
+        Please do not include any additional explanation, sentences, or content other than the list.
+        """
+    return prompt
+
 
 def get_multiple_completions(prompt, model="azure/gpt-4o-mini", num_sequences=3, temperature=1.0):
     responses = []

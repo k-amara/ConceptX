@@ -68,6 +68,12 @@ def load_data(args):
         df_final = pd.read_csv(os.path.join(args.data_save_dir, "stereotypical_temp_0.8_responses.csv"))
     elif args.dataset == "genderbias2":
         df_final = pd.read_csv(os.path.join(args.data_save_dir, "stereotypical_temp_0.8_responses_v2.csv"))
+    elif args.dataset == "saladbench":
+        ds = load_dataset("OpenSafetyLab/Salad-Data", "attack_enhanced_set")
+        df = pd.DataFrame(ds['train'])
+        df_filtered = df[df['baseq'].str.len() <= 60]
+        df_filtered['id'] = df_filtered.index
+        df_final = df_filtered[['id', 'baseq']].rename(columns={'baseq': 'input'})
     else:
         raise ValueError("Unknown dataset type passed: %s!" % args.dataset)
     

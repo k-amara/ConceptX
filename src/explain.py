@@ -42,10 +42,13 @@ def compute_explanations(args, save=True):
         explainer = TokenSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0)
     elif args.explainer == "conceptshap":
         splitter = ConceptSplitter()
-        explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace=False)
-    elif args.explainer == "conceptx":
+        explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace=None)
+    elif args.explainer.endswith("conceptx"):
         splitter = ConceptSplitter()
-        explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace=True)
+        if args.explainer == "aconceptx":
+            explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace="antonym")
+        else:
+            explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace="neutral")
         # Determine baseline if needed
         baseline_texts = None
         if args.baseline == "reference":

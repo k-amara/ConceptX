@@ -83,9 +83,12 @@ def test_explainer(args):
     elif args.explainer == "conceptshap":
         splitter = ConceptSplitter()
         explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace=False)
-    elif args.explainer == "conceptx":
+    elif args.explainer.endswith("conceptx"):
         splitter = ConceptSplitter()
-        explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace=True)
+        if args.explainer == "aconceptx":
+            explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace="antonym")
+        else:
+            explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace="neutral")
         # Determine baseline if needed
         baseline_texts = None
         if args.baseline == "reference":

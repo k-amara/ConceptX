@@ -377,7 +377,7 @@ class LLMPipeline:
                 self.model = model_class.from_pretrained(
                     MODEL_IDENTIFIER[self.args.model_name], 
                     attn_implementation="sdpa",
-                    torch_dtype=torch.float16,  
+                    torch_dtype=torch.bfloat16,  
                     device_map="auto"  
                 )
             

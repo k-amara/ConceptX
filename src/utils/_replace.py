@@ -1,8 +1,21 @@
 # Please install OpenAI SDK first: `pip3 install openai`
 import os
+import pandas as pd
+import random
 from openai import OpenAI, BadRequestError
 from dotenv import load_dotenv
 from model import ContentPolicyViolationError
+import requests
+import re
+
+import torch._dynamo
+torch._dynamo.config.suppress_errors = True  # Suppress TorchInductor errors
+torch._dynamo.reset()  # Reset inductor state
+
+# Download Google's 1M common words dataset
+url = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/20k.txt"
+VOCAB = requests.get(url).text.split("\n")
+
 # Load the .env file
 load_dotenv()
 
@@ -10,6 +23,7 @@ client = OpenAI(
     api_key=os.getenv("GPT4O_MINI_API_KEY"), # OpenAI API Key
     base_url="https://aikey-gateway.ivia.ch" # LiteLLM Proxy is OpenAI compatible, Read More: https://docs.litellm.ai/docs/proxy/user_keys
 )
+
 
 
 def create_prompt_for_neutral_replacement(sentence, input_concepts):             
@@ -88,6 +102,93 @@ def get_multiple_completions(prompt, model="azure/gpt-4o-mini", num_sequences=3,
                 raise  # Re-raise other errors
             
     return responses
+
+
+def get_antonym_conceptnet(word):
+    url = f"https://api.conceptnet.io/query?rel=/r/Antonym&start=/c/en/{word.lower()}&limit=10"
+    response = requests.get(url).json()
+    
+    antonyms = []
+    for edge in response.get("edges", []):
+        end = edge["end"]
+        if end["@id"].startswith("/c/en/"):
+            antonym = end["@id"].split("/c/en/")[-1]
+            antonyms.append(antonym)
+    if antonyms:
+        return antonyms[0]
+    else:
+        return None
+    
+    
+    
+def remove_token(explanation):
+    # Extract tokens, positions, and scores
+    tokens_scores = [(key.rsplit('_', 1)[0], int(key.rsplit('_', 1)[1]), value) for key, value in explanation.items()]
+    
+    # Find the token with the highest score
+    highest_token, highest_position, _ = max(tokens_scores, key=lambda x: x[2])
+    # random_token = random.choice(VOCAB)
+    sorted_tokens = sorted(tokens_scores, key=lambda x: x[1])
+    sentence_highest = " ".join(
+        token for token, token_position, _ in sorted_tokens
+        if not (token == highest_token and token_position == highest_position)
+    )
+    return sentence_highest, highest_token
+
+
+
+def replace_token_with_antonym(explanation):
+    # Extract tokens, positions, and scores
+    tokens_scores = [(key.rsplit('_', 1)[0], int(key.rsplit('_', 1)[1]), value) for key, value in explanation.items()]
+    
+    # Find the token with the highest score
+    highest_token, highest_position, _ = max(tokens_scores, key=lambda x: x[2])
+
+    # Try to get an antonym
+    antonym = get_antonym_conceptnet(highest_token.lower())
+    print(f"The antonym of {highest_token} is: ", antonym)
+    if antonym is None:
+        antonym = random.choice(VOCAB) # fallback: keep the original if no antonym found
+
+    # Rebuild the sentence with the antonym replacing the harmful token
+    sorted_tokens = sorted(tokens_scores, key=lambda x: x[1])
+    sentence_with_antonym = " ".join(
+        antonym if (token == highest_token and token_position == highest_position) else token
+        for token, token_position, _ in sorted_tokens
+    )
+
+    return sentence_with_antonym, highest_token
+
+
+def remove_label(sentence, word):
+    if pd.isna(word):
+        return sentence  # If word is NaN, do nothing and return the original sentence
+    
+    word = str(word)  # Convert to string just in case it's a float/int
+    
+    pattern = r'\b' + re.escape(word) + r'\b'
+    cleaned_sentence = re.sub(pattern, '', sentence, flags=re.IGNORECASE)
+    cleaned_sentence = re.sub(r'\s+', ' ', cleaned_sentence).strip()
+    return cleaned_sentence
+
+def replace_label_with_antonym(sentence, word):
+    """Replace the given word in the sentence with its antonym from ConceptNet."""
+    if pd.isna(word):
+        return sentence  # If word is NaN, do nothing and return the original sentence
+    
+    antonym = get_antonym_conceptnet(word.lower())
+    print(f"The antonym of '{word}' is: {antonym}")
+    
+    if antonym is None:
+        antonym = random.choice(VOCAB)  # fallback
+    
+    # Regex replacement preserving surrounding punctuation
+    pattern = r'\b' + re.escape(word) + r'\b'
+    replaced_sentence = re.sub(pattern, antonym, sentence, flags=re.IGNORECASE)
+    return replaced_sentence
+
+    
+
 
 
 

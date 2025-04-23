@@ -13,7 +13,7 @@ from scipy.special import softmax
 import gc
 
 from explainers import *
-from utils import arg_parse, load_file, load_data, get_path, get_remaining_df
+from utils import arg_parse, load_file, load_data, get_path, get_remaining_df, remove_token, remove_label, replace_token_with_antonym, replace_label_with_antonym
 from accelerate.utils import set_seed
 import requests
 
@@ -69,9 +69,8 @@ def replace_token(explanation, label):
         token for token, _, _ in sorted_tokens
         if token != label
     )
-    sentence_label = " ".join("" if token == label else token for token, _, _ in sorted_tokens)
-    
     return sentence_highest, sentence_label, highest_token, label
+
 
 def sentiment_probability(classifier, sentence, sentence_highest, sentence_label, aspect):
     p0 = classifier.get_aspect_score(sentence, aspect)
@@ -107,10 +106,15 @@ def eval_classifier(args, save=True):
         contains_nan = any(np.isnan(value) for value in explanation.values())
         if contains_nan:
             continue
-        label, aspect = row["label"], row["aspect"]
-        sentence_highest, sentence_label, highest_token, label = replace_token(explanation, label)
+        sentence, label, aspect = row["input"], row["label"], row["aspect"]
+        if replace == "antonym":
+            sentence_highest, highest_token = replace_token_with_antonym(explanation)
+            sentence_label = replace_label_with_antonym(sentence, label)
+        else:
+            sentence_highest, highest_token = remove_token(explanation)
+            sentence_label = remove_label(sentence, label)
         try:
-            entry["p0"], entry["p_highest"], entry["p_label"] = sentiment_probability(classifier, row["input"], sentence_highest, sentence_label, aspect)
+            entry["p0"], entry["p_highest"], entry["p_label"] = sentiment_probability(classifier, sentence, sentence_highest, sentence_label, aspect)
         except ValueError as e:
             print(f"Skipping aspect due to error: {e}")
             continue

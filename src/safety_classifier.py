@@ -1,9 +1,6 @@
-import random
 import pandas as pd
 import requests
 import os
-import copy
-import math
 import re
 import numpy as np
 
@@ -14,18 +11,12 @@ import gc
 
 from model import LLMPipeline, LLMAPI, ContentPolicyViolationError
 from explainers import *
-from utils import arg_parse, load_file, load_data, get_path, get_remaining_df
+from utils import arg_parse, load_file, load_data, get_path, get_remaining_df, remove_token, remove_label, replace_token_with_antonym, replace_label_with_antonym
 from accelerate.utils import set_seed
-import requests
 
 import torch._dynamo
 torch._dynamo.config.suppress_errors = True  # Suppress TorchInductor errors
 torch._dynamo.reset()  # Reset inductor state
-
-# Download Google's 1M common words dataset
-url = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/20k.txt"
-VOCAB = requests.get(url).text.split("\n")
-
 
 class LLaMAGuard3:
     def __init__(self, model_name="meta-llama/Llama-Guard-3-8B"):
@@ -76,30 +67,6 @@ class SafetyClassifier:
         match = re.search(r"\[RESULT\]:\s*(\w+),\s*score\s*(\d+)", resp)
         return match.group(1), match.group(2)
     
-        
-
-def replace_harmful_token(explanation):
-    # Extract tokens, positions, and scores
-    tokens_scores = [(key.rsplit('_', 1)[0], int(key.rsplit('_', 1)[1]), value) for key, value in explanation.items()]
-    
-    # Find the token with the highest score
-    highest_token, highest_position, _ = max(tokens_scores, key=lambda x: x[2])
-    # random_token = random.choice(VOCAB)
-    sorted_tokens = sorted(tokens_scores, key=lambda x: x[1])
-    sentence_highest = " ".join(
-        token for token, token_position, _ in sorted_tokens
-        if not (token == highest_token and token_position == highest_position)
-    )
-    return sentence_highest, highest_token
-
-def remove_word(sentence, word):
-    # Escape the word in case it contains regex special characters
-    pattern = r'\b' + re.escape(word) + r'\b'
-    # Remove the word regardless of case
-    cleaned_sentence = re.sub(pattern, '', sentence, flags=re.IGNORECASE)
-    # Remove extra whitespace
-    cleaned_sentence = re.sub(r'\s+', ' ', cleaned_sentence).strip()
-    return cleaned_sentence
 
 
 def eval_label_safety(args, save=True):
@@ -114,7 +81,7 @@ def eval_label_safety(args, save=True):
     # Prepare paths and data
     df_data = load_data(args)
     
-    folder_name = "safety"
+    folder_name = "safety_label"
     save_dir = os.path.join(args.result_save_dir, f'{folder_name}/{args.model_name}/{args.dataset}/seed_{args.seed}')
     os.makedirs(save_dir, exist_ok=True)
     filename = f"{folder_name}_"
@@ -137,11 +104,14 @@ def eval_label_safety(args, save=True):
             "label": row["label"]
         }
 
-        sentence_label = remove_word(entry["input"], entry["label"])
+        sentence_label = remove_label(entry["input"], entry["label"])
+        sentence_label_antonym = replace_label_with_antonym(entry["input"], entry["label"])
+        print("sentence_label_antonym: ", sentence_label_antonym)
 
         try:
             entry["answer"] = llm.generate(entry["input"])
             entry["answer_label"] = llm.generate(sentence_label)
+            entry["answer_label_antonym"] = llm.generate(sentence_label_antonym)
         except ContentPolicyViolationError:
             continue
 
@@ -158,7 +128,8 @@ def eval_label_safety(args, save=True):
     for entry in generated:
         try:
             entry["asr_0"], entry["score_0"] = classifier(entry["input"], entry["answer"])
-            entry["asr_label"], entry["score_label"] = classifier(remove_word(entry["label"],entry["input"]), entry["answer_label"])
+            entry["asr_label"], entry["score_label"] = classifier(sentence_label, entry["answer_label"])
+            entry["asr_label_antonym"], entry["score_label_antonym"] = classifier(sentence_label_antonym, entry["answer_label_antonym"])
         except ValueError as e:
             print(f"Skipping entry {entry['id']} due to classifier error: {e}")
             continue
@@ -177,7 +148,7 @@ def eval_label_safety(args, save=True):
 
 
 
-def eval_safety(args, save=True):
+def eval_safety(args, save=True, replace=None):
     if args.seed is not None:
         set_seed(args.seed)
 
@@ -188,7 +159,8 @@ def eval_safety(args, save=True):
 
     # Load input data
     df_explanation = load_file(args, folder_name="explanations")
-    safety_path = get_path(args, folder_name="safety")
+    fname = "safety_"+replace if replace else "safety"
+    safety_path = get_path(args, folder_name=fname)
     file_exists = os.path.isfile(safety_path)
     df = get_remaining_df(df_explanation, safety_path)
     print("df: ", df.head())
@@ -200,8 +172,10 @@ def eval_safety(args, save=True):
         explanation = eval(row["explanation"], {"np": np, "nan": np.nan})
         if any(np.isnan(value) for value in explanation.values()):
             continue
-
-        sentence_highest, highest_token = replace_harmful_token(explanation)
+        if replace == "antonym":
+            sentence_highest, highest_token = replace_token_with_antonym(explanation)
+        else:
+            sentence_highest, highest_token = remove_token(explanation)
         try:
             response_highest = llm.generate(sentence_highest)
         except (ValueError, ContentPolicyViolationError):
@@ -250,5 +224,5 @@ def eval_safety(args, save=True):
 
 if __name__=="__main__":
     parser, args = arg_parse()
-    # eval_label_safety(args)
-    eval_safety(args)
+    eval_label_safety(args)
+    # eval_safety(args, replace="antonym")

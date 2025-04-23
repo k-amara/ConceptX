@@ -79,7 +79,7 @@ def sentiment_probability(classifier, sentence, sentence_highest, sentence_label
     return p0, p_highest, p_label
 
 
-def eval_classifier(args, save=True):
+def eval_classifier(args, save=True, replace=None):
     
     if args.seed is not None:
         set_seed(args.seed)
@@ -95,7 +95,8 @@ def eval_classifier(args, save=True):
     df_explanation = pd.merge(df_explanation, labels[['id', 'label', 'aspect']], on='id', how='left')
     print("Lenght explanations with label: ", len(df_explanation))
     
-    classification_path = get_path(args, folder_name="classification")
+    fname = "classification-"+replace if replace else "classification"
+    classification_path = get_path(args, folder_name=fname)
     file_exists = os.path.isfile(classification_path)  # Check if file exists
     df = get_remaining_df(df_explanation, classification_path)
     print("df: ", df.head())
@@ -137,5 +138,6 @@ def eval_classifier(args, save=True):
 
 if __name__=="__main__":
     parser, args = arg_parse()
-    eval_classifier(args)
+    # eval_classifier(args)
+    eval_classifier(args, replace="antonym")
 

@@ -159,7 +159,7 @@ def eval_safety(args, save=True, replace=None):
 
     # Load input data
     df_explanation = load_file(args, folder_name="explanations")
-    fname = "safety_"+replace if replace else "safety"
+    fname = "safety-"+replace if replace else "safety"
     safety_path = get_path(args, folder_name=fname)
     file_exists = os.path.isfile(safety_path)
     df = get_remaining_df(df_explanation, safety_path)

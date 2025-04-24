@@ -90,10 +90,12 @@ def arg_parse():
         help="temperature of 1.0 has no effect, lower tend toward greedy sampling",
     )
     parser.add_argument(
-        "--do_sample",
-        action="store_true",
-        help="whther or not t sample each new LLM generate run. If set to False the LLM generation becomes deterministic for fixed seed",
+        "--no_sample",
+        action="store_false",
+        dest="do_sample",
+        help="If set, disables sampling. By default, sampling is enabled.",
     )
+    
     parser.add_argument(
         "--repetition_penalty", type=float, default=1.0, help="primarily useful for CTRL model; in that case, use 1.2"
     )
@@ -166,7 +168,7 @@ def arg_parse():
     ### Safety Analysis
     parser.add_argument(
         "--defender",
-        default=None,
+        default="none",
         type=str,
         help="defender type selected in the list of explainer classes (selfreminder, selfparaphrase, gpt4omini, random, tokenshap, conceptshap, conceptx)",
     )

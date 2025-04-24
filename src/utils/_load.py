@@ -130,7 +130,7 @@ def get_remaining_df(df, path):
         existing_df = pd.read_csv(path)
         print("existing_df: ", existing_df)
         if not existing_df.empty:
-            last_id = existing_df["id"].max()  # Get last processed ID
+            last_id = existing_df["id"].drop_duplicates().iloc[-1]
             print("last_id: ", last_id)
         else:
             last_id = -1  # If empty, start from beginning

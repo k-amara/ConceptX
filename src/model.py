@@ -26,6 +26,10 @@ from accelerate import PartialState
 from accelerate.utils import set_seed
 from dotenv import load_dotenv
 
+import time
+import random
+from functools import wraps
+from openai import RateLimitError
 
 from transformers import (
     AutoTokenizer,
@@ -111,6 +115,24 @@ quantization_map = {
     "8bit": BitsAndBytesConfig(load_in_8bit=True),
     "4bit": BitsAndBytesConfig(load_in_4bit=True)
 }
+
+def retry_on_ratelimit(max_retries=10, base_delay=1.0, backoff_factor=2.0):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            delay = base_delay
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except RateLimitError as e:
+                    wait = delay + random.uniform(0, 0.5)
+                    print(f"[RateLimit] Attempt {attempt + 1}/{max_retries}, retrying in {wait:.2f} seconds...")
+                    time.sleep(wait)
+                    delay *= backoff_factor
+            raise RateLimitError("Max retries exceeded due to rate limiting.")
+        return wrapper
+    return decorator
+
 
 # Padding text to help Transformer-XL and XLNet with short prompts as proposed by Aman Rusia
 # in https://github.com/rusiaaman/XLNet-gen#methodology
@@ -530,7 +552,9 @@ class LLMAPI:
         self.rate_limit_enabled = rate_limit_enabled  # Toggle rate limiting
         self.request_times = []
         self.dataset_name = args.dataset
-
+        
+        
+    @retry_on_ratelimit()
     def generate(self, input_text):
         if self.rate_limit_enabled:
             self._enforce_rate_limit()

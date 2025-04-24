@@ -75,3 +75,4 @@ class FeatAblation(Explainer):
         self.explanation = {f"{token}_{i}": score.item() for i, (token, score) in enumerate(zip(inp.values, attr))}
         print("FeatAblation token explanation:", self.explanation)
         return normalize_explanation(self.explanation)
+    

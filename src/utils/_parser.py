@@ -162,6 +162,22 @@ def arg_parse():
         help="Masking strategy when evaluating faithfulness (random, ellipsis)",
     )
     
+    
+    ### Safety Analysis
+    parser.add_argument(
+        "--defender",
+        default=None,
+        type=str,
+        help="defender type selected in the list of explainer classes (selfreminder, selfparaphrase, gpt4omini, random, tokenshap, conceptshap, conceptx)",
+    )
+    
+    parser.add_argument(
+        "--steer_replace",
+        default=None,
+        type=str,
+        help="Whther to replace the removed token with antonym to steer the model response; None is only removing the token; Only valid if defender is a token-level xai method",
+    )
+    
     args, unknown = parser.parse_known_args()
     return parser, args
 

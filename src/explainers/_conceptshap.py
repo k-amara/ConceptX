@@ -21,7 +21,7 @@ class ConceptSHAP(Explainer):
                  vectorizer: Optional[TextVectorizer] = None,
                  debug: bool = False,
                  sampling_ratio: float = 0.0,
-                 replace: bool = True):
+                 replace: str = None):
         super().__init__(llm, splitter, vectorizer, debug)
         self.sampling_ratio = sampling_ratio
         self.replace = replace

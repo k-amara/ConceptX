@@ -1,18 +1,17 @@
 import pandas as pd
-import requests
 import os
 import re
 import numpy as np
 
 from accelerate.utils import set_seed
 from transformers import AutoTokenizer,  AutoModelForCausalLM
-from scipy.special import softmax
 import gc
 
-from model import LLMPipeline, LLMAPI, ContentPolicyViolationError
+from model import LLMPipeline, LLMAPI
 from explainers import *
-from utils import arg_parse, load_file, load_data, get_path, get_remaining_df, remove_token, remove_label, replace_token_with_antonym, replace_label_with_antonym
+from utils import arg_parse, load_file, load_data, get_remaining_df, remove_token, remove_label, replace_token_with_antonym, replace_label_with_antonym
 from accelerate.utils import set_seed
+from defenders import SelfReminder, SelfParaphrase
 
 import torch._dynamo
 torch._dynamo.config.suppress_errors = True  # Suppress TorchInductor errors
@@ -45,6 +44,7 @@ class LLaMAGuard3:
         
 
 class SafetyClassifier:
+    # "transformers_version": "4.41.2",
     def __init__(self, model_name="OpenSafetyLab/MD-Judge-v0_2-internlm2_7b"):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
         self.model = AutoModelForCausalLM.from_pretrained(model_name, 
@@ -69,127 +69,76 @@ class SafetyClassifier:
     
 
 
-def eval_label_safety(args, save=True):
-    if args.seed is not None:
-        set_seed(args.seed)
-
-    # Decide whether to use API-based LLM
-    api_required = args.model_name in ["gpt4o-mini", "gpt4o", "o1", "deepseek"]
-    rate_limit = args.model_name.startswith("gpt4")
-    llm = LLMAPI(args, rate_limit_enabled=rate_limit) if api_required else LLMPipeline(args)
-
-    # Prepare paths and data
-    df_data = load_data(args)
-    
-    folder_name = "safety_label"
-    save_dir = os.path.join(args.result_save_dir, f'{folder_name}/{args.model_name}/{args.dataset}/seed_{args.seed}')
+def get_safety_file_path(args):
+    save_dir = os.path.join(args.result_save_dir, f'safety/seed_{args.seed}')
     os.makedirs(save_dir, exist_ok=True)
-    filename = f"{folder_name}_"
+    filename = f"safety_"
     filename += f"batch_{args.num_batch}_" if args.num_batch is not None else ""
-    filename += f"{args.dataset}_{args.model_name}_{args.seed}.{args.file_type}"
+    filename += f"{args.dataset}_{args.model_name}_{args.defender}"
+    filename += f"antonym_" if args.steer_replace == "antonym" else ""
+    filename += f"{args.seed}.{args.file_type}"
     safety_path = os.path.join(save_dir, filename)
-    file_exists = os.path.isfile(safety_path)
-
-    df = get_remaining_df(df_data, safety_path)
-    print("df: ", df.head())
-
-    generated = []
-
-    # === Pass 1: Generation with LLM ===
-    for _, row in df.iterrows():
-        entry = {
-            "id": row["id"],
-            "input": row["input"],
-            "aspect": row["aspect"],
-            "label": row["label"]
-        }
-
-        sentence_label = remove_label(entry["input"], entry["label"])
-        sentence_label_antonym = replace_label_with_antonym(entry["input"], entry["label"])
-        print("sentence_label_antonym: ", sentence_label_antonym)
-
-        try:
-            entry["answer"] = llm.generate(entry["input"])
-            entry["answer_label"] = llm.generate(sentence_label)
-            entry["answer_label_antonym"] = llm.generate(sentence_label_antonym)
-        except ContentPolicyViolationError:
-            continue
-
-        generated.append(entry)
-
-    # Free GPU if needed
-    if not api_required:
-        del llm
-        torch.cuda.empty_cache()
-
-    # === Pass 2: Classification with MD-Judge ===
-    classifier = SafetyClassifier()
-
-    for entry in generated:
-        try:
-            entry["asr_0"], entry["score_0"] = classifier(entry["input"], entry["answer"])
-            entry["asr_label"], entry["score_label"] = classifier(sentence_label, entry["answer_label"])
-            entry["asr_label_antonym"], entry["score_label_antonym"] = classifier(sentence_label_antonym, entry["answer_label_antonym"])
-        except ValueError as e:
-            print(f"Skipping entry {entry['id']} due to classifier error: {e}")
-            continue
-
-        row_df = pd.DataFrame([entry])
-
-        if save:
-            row_df.to_csv(safety_path, mode="a", header=not file_exists, index=False)
-            file_exists = True
-        else:
-            print(f"safety score at id {entry['id']}: ", row_df)
-
-        # Cleanup
-        del row_df
-        gc.collect()
+    return safety_path
 
 
-
-def eval_safety(args, save=True, replace=None):
+def eval_safety(args, save=True):
+    torch.cuda.empty_cache()
     if args.seed is not None:
         set_seed(args.seed)
 
-    # Decide on model usage
+    # Choose LLM backend
     api_required = args.model_name in ["gpt4o-mini", "gpt4o", "o1", "deepseek"]
     rate_limit = args.model_name.startswith("gpt4")
     llm = LLMAPI(args, rate_limit_enabled=rate_limit) if api_required else LLMPipeline(args)
 
     # Load input data
-    df_explanation = load_file(args, folder_name="explanations")
-    fname = "safety-"+replace if replace else "safety"
-    safety_path = get_path(args, folder_name=fname)
-    file_exists = os.path.isfile(safety_path)
-    df = get_remaining_df(df_explanation, safety_path)
-    print("df: ", df.head())
+    if args.defender in ["conceptx", "tokenshap", "conceptshap", "random", "aconceptx"]:
+        args.explainer = args.defender
+        df = load_file(args, folder_name="explanations")
+    else:
+        df = load_data(args)
 
+    df = df[:2]
+    
+    safety_file = get_safety_file_path(args)
+    file_exists = os.path.isfile(safety_file)
+    df = get_remaining_df(df, safety_file)
+    print("df: ", df.head())
+    
     generated = []
 
-    # === Pass 1: Generation ===
     for _, row in df.iterrows():
-        explanation = eval(row["explanation"], {"np": np, "nan": np.nan})
-        if any(np.isnan(value) for value in explanation.values()):
-            continue
-        if replace == "antonym":
-            sentence_highest, highest_token = replace_token_with_antonym(explanation)
-        else:
-            sentence_highest, highest_token = remove_token(explanation)
-        try:
-            response_highest = llm.generate(sentence_highest)
-        except (ValueError, ContentPolicyViolationError):
-            continue
-
-        generated.append({
-            "id": row["id"],
+        entry = {
+            "id": int(row["id"]),
             "input": row["input"],
-            "aspect": "harmful",
-            "sentence_highest": sentence_highest,
-            "highest_token": highest_token,
-            "response_highest": response_highest
-        })
+            "aspect": row.get("aspect", "harmful")
+        }
 
+        if args.defender == "none":
+            entry["answer"] = llm.generate(entry["input"])
+
+        elif args.defender == "gpt4omini":
+            input_clean = replace_label_with_antonym(entry["input"], row["label"]) if args.steer_replace == "antonym" else remove_label(entry["input"], row["label"])
+            entry["answer"] = llm.generate(input_clean)
+
+        elif args.defender in ["selfreminder", "selfparaphrase"]:
+            defender_cls = SelfReminder if args.defender == "selfreminder" else SelfParaphrase
+            defender_kwargs = {'model': llm}  # Always pass model
+            if args.defender == "selfparaphrase":
+                defender_kwargs['tokenizer'] = llm.tokenizer
+            defender = defender_cls(**defender_kwargs)
+            entry["answer"] = defender.get_response(entry["input"])
+
+        elif args.defender in ["random", "tokenshap", "conceptshap", "conceptx", "aconceptx"]:
+            explanation = eval(row["explanation"], {"np": np, "nan": np.nan})
+            if any(np.isnan(v) for v in explanation.values()):
+                continue
+            sentence_highest, highest_token = replace_token_with_antonym(explanation) if args.steer_replace == "antonym" else remove_token(explanation)
+            entry["explanatory_token"] = highest_token
+            entry["answer"] = llm.generate(sentence_highest)
+            
+        generated.append(entry)
+    
     # Free GPU memory if needed
     if not api_required:
         del llm
@@ -200,29 +149,23 @@ def eval_safety(args, save=True, replace=None):
 
     for entry in generated:
         try:
-            entry["asr_highest"], entry["score_highest"] = classifier(entry["sentence_highest"], entry["response_highest"])
-        except ValueError as e:
-            print(f"Skipping aspect due to error: {e}")
+            entry["asr"], entry["hs"] = classifier(entry["input"], entry["answer"])
+        except Exception as e:
+            print(f"Skipping id {entry['id']} due to error: {e}")
             continue
-
         row_df = pd.DataFrame([entry])
 
         if save:
-            row_df.to_csv(safety_path, mode="a", header=not file_exists, index=False)
+            row_df.to_csv(safety_file, mode="a", header=not file_exists, index=False)
             file_exists = True
         else:
-            print(f"safety score at id {entry['id']}: ", row_df)
+            print(f"Score for id {entry['id']}: ", row_df)
 
-        # Cleanup
         del row_df
         gc.collect()
-        
 
-       
-# def attack_succes_rate():
 
 
 if __name__=="__main__":
     parser, args = arg_parse()
-    eval_label_safety(args)
-    # eval_safety(args, replace="antonym")
+    eval_safety(args)

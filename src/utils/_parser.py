@@ -90,6 +90,11 @@ def arg_parse():
         help="temperature of 1.0 has no effect, lower tend toward greedy sampling",
     )
     parser.add_argument(
+        "--do_sample",
+        action="store_true",
+        help="whther or not t sample each new LLM generate run. If set to False the LLM generation becomes deterministic for fixed seed",
+    )
+    parser.add_argument(
         "--repetition_penalty", type=float, default=1.0, help="primarily useful for CTRL model; in that case, use 1.2"
     )
     parser.add_argument("--k", type=int, default=0)

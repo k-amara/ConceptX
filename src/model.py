@@ -423,7 +423,7 @@ class LLMPipeline:
                 top_k=self.args.k,
                 top_p=self.args.p,
                 repetition_penalty=self.args.repetition_penalty,
-                do_sample=True,
+                do_sample=self.args.do_sample,
                 num_return_sequences=self.args.num_return_sequences,
                 return_full_text=False
             )
@@ -465,7 +465,7 @@ class LLMPipeline:
                         top_k=self.args.k,
                         top_p=self.args.p,
                         repetition_penalty=self.args.repetition_penalty,
-                        do_sample=True,
+                        do_sample=self.args.do_sample,
                         num_return_sequences=self.args.num_return_sequences,
                     )
 

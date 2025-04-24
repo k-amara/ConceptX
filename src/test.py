@@ -22,7 +22,7 @@ def test_model(args):
     
     df = load_data(args)
     print(df.head())
-    inputs = df['input'].tolist()[:10]
+    inputs = df['input'].tolist()[:2]
     for instruction in inputs:
         print("Instruction:", instruction)
         response = llm.generate(instruction)

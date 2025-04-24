@@ -69,9 +69,12 @@ def process_dataframe(row, llm, vectorizer, thresholds=np.arange(0, 1.1, 0.1), m
     return entry
 
 
-def eval_faithfulness(args, save=True):
+def eval_faithfulness(args, save=True, do_sample=True):
     if args.seed is not None:
         set_seed(args.seed)
+        
+    if not do_sample:
+        args.do_sample = False
         
     api_required = True if args.model_name in ["gpt4o-mini", "gpt4o", "o1", "deepseek"] else False 
     rate_limit = True if args.model_name.startswith("gpt4") else False
@@ -79,8 +82,9 @@ def eval_faithfulness(args, save=True):
     
     vectorizer = load_vectorizer(args.vectorizer)
     
+    fname = "faithfulness-sample" if do_sample else "faithfulness"
     df_explanation = load_file(args, folder_name="explanations")
-    faithfulness_path = get_path(args, folder_name="faithfulness")
+    faithfulness_path = get_path(args, folder_name=fname)
     file_exists = os.path.isfile(faithfulness_path)  # Check if file exists
     df = get_remaining_df(df_explanation, faithfulness_path)
     print("remaining df: ", df.head())

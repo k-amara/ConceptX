@@ -167,6 +167,13 @@ def arg_parse():
     
     ### Safety Analysis
     parser.add_argument(
+        "--safety_classifier",
+        default="mdjudge",
+        type=str,
+        help="The safety classifier judging whether the answer given is safe; either mdjudge or llamaguard3",
+    )
+    
+    parser.add_argument(
         "--defender",
         default="none",
         type=str,

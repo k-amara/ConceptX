@@ -3,8 +3,17 @@ from ._safety_baselines import (
     SelfParaphrase
 )
 
+from ._safety_judge import (
+    start_mdjudge_server,
+    send_to_mdjudge,
+    LLaMAGuard3
+)
+
 
 __all__ = [
     "SelfReminder",
-    "SelfParaphrase"
+    "SelfParaphrase",
+    "start_mdjudge_server",
+    "send_to_mdjudge",
+    "LLaMAGuard3"
 ]

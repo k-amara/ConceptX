@@ -51,9 +51,9 @@ def compute_explanations(args, save=True):
             explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace="neutral")
         # Determine baseline if needed
         baseline_texts = None
-        if args.baseline == "reference":
+        if args.explainer.endswith("-r"):
             baseline_texts = df['reference'].tolist()
-        elif args.baseline == "aspect":
+        elif args.explainer.endswith("-a"):
             baseline_texts = df['aspect'].tolist()
         print(baseline_texts)
         # Add baseline to kwargs only if it's not None

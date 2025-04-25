@@ -9,9 +9,7 @@ def get_path(args, folder_name):
     os.makedirs(save_dir, exist_ok=True)
     filename = f"{folder_name}_"
     filename += f"batch_{args.num_batch}_" if args.num_batch is not None else ""
-    filename += f"{args.dataset}_{args.model_name}_{args.explainer}_"
-    filename += f"{args.baseline}_" if args.baseline is not None else ""
-    filename += f"{args.seed}.{args.file_type}"
+    filename += f"{args.dataset}_{args.model_name}_{args.explainer}_{args.seed}.{args.file_type}"
     return os.path.join(save_dir, filename)
 
 

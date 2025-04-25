@@ -43,7 +43,7 @@ def compute_explanations(args, save=True):
     elif args.explainer == "conceptshap":
         splitter = ConceptSplitter()
         explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace=None)
-    elif args.explainer.endswith("conceptx"):
+    elif "conceptx" in args.explainer:
         splitter = ConceptSplitter()
         if args.explainer == "aconceptx":
             explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace="antonym")

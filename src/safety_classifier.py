@@ -43,7 +43,7 @@ class MDJudge:
 
 def eval_safety(args, save=True):
     torch.cuda.empty_cache()
-
+        
     answers_file = get_answers_file_path(args)
     df = pd.read_csv(answers_file)
     safety_file = get_safety_file_path(args)

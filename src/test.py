@@ -3,7 +3,7 @@ import pickle as pkl
 
 from model import LLMPipeline, LLMAPI
 from explainers import *
-from utils import arg_parse, load_data, load_vectorizer, get_path
+from utils import arg_parse, load_data, load_vectorizer
 from accelerate.utils import set_seed
 import torch._dynamo
 torch._dynamo.config.suppress_errors = True  # Suppress TorchInductor errors
@@ -15,6 +15,9 @@ def test_model(args):
     
     if args.seed is not None:
         set_seed(args.seed)
+        
+    if not args.do_sample:
+        args.result_save_dir += '-no-sample'
     
     api_required = True if args.model_name in ["gpt4o-mini", "gpt4o", "o1", "deepseek"] else False 
     rate_limit = True if args.model_name.startswith("gpt4") else False
@@ -22,7 +25,7 @@ def test_model(args):
     
     df = load_data(args)
     print(df.head())
-    inputs = df['input'].tolist()[:2]
+    inputs = df['input'].tolist()[:4]
     for instruction in inputs:
         print("Instruction:", instruction)
         response = llm.generate(instruction)
@@ -54,6 +57,9 @@ def test_explainer(args):
     
     if args.seed is not None:
         set_seed(args.seed)
+        
+    if not args.do_sample:
+        args.result_save_dir += '-no-sample'
         
     api_required = True if args.model_name in ["gpt4o-mini", "gpt4o", "o1", "deepseek"] else False 
     rate_limit = True if args.model_name.startswith("gpt4") else False
@@ -112,3 +118,4 @@ if __name__ == "__main__":
     parser, args = arg_parse()
     test_model(args)
     #test_explainer(args)
+    

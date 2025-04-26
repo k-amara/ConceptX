@@ -139,5 +139,6 @@ clutils/
 config/
 figures/
 results/
+results-no-sample/
 
 *.sh

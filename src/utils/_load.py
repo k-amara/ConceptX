@@ -78,6 +78,7 @@ def load_data(args):
         df_filtered = df_filtered[df_filtered['instruction'].str.len() <= 58]
         df_filtered['id'] = df_filtered.index
         df_final = df_filtered[['id', 'instruction']].rename(columns={'instruction': 'input'})
+        df_final = df_final.sample(frac=1).reset_index(drop=True)
     elif args.dataset == "sst2":
         df_final = pd.read_csv(os.path.join(args.data_save_dir, "sst2_classification.csv"))
     elif args.dataset == "sentiment":

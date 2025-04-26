@@ -12,11 +12,11 @@ CKPT_ROOT = "/cluster/home/kamara/conceptx/"
 STORAGE = "/cluster/scratch/kamara/conceptx/"
 #CKPT_ROOT = "/Users/kenzaamara/GithubProjects/conceptx/"
 #STORAGE = "/Users/kenzaamara/GithubProjects/conceptx/"
-DATA_DIR = CKPT_ROOT + "data/"
-MODEL_DIR = STORAGE + "models/"
-HIDDEN_STATE_DIR = STORAGE + "hidden_states/"
-FIG_DIR = CKPT_ROOT + "figures/"
-RESULT_DIR = CKPT_ROOT + "results/"
+DATA_DIR = CKPT_ROOT + "data"
+MODEL_DIR = STORAGE + "models"
+HIDDEN_STATE_DIR = STORAGE + "hidden_states"
+FIG_DIR = CKPT_ROOT + "figures"
+RESULT_DIR = CKPT_ROOT + "results"
 
 
 
@@ -188,7 +188,16 @@ def arg_parse():
     )
     
     args, unknown = parser.parse_known_args()
+
+    # Apply logic if --no_sample is passed (i.e., do_sample is False)
+    if args.do_sample is False:
+        args.result_save_dir += "-no-sample"
+        args.temperature = 0.0
+        args.top_k = 0
+        args.top_p = 1.0
+        
     return parser, args
+
 
 
 def create_args_group(parser, args):

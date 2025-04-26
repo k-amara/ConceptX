@@ -103,6 +103,7 @@ def eval_accuracy(args, save=True):
         
 
 def get_explanations_accuracy(args):
+        
     explanations_dir = os.path.join(args.result_save_dir, "explanations")
     
     if not os.path.exists(explanations_dir):

@@ -104,4 +104,6 @@ def compute_explanations(args, save=True):
 
 if __name__ == "__main__":
     parser, args = arg_parse()
+    print('args do_sample: ', args.do_sample)
+    print('args result_save_dir: ', args.result_save_dir)
     compute_explanations(args)

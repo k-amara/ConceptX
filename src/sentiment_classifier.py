@@ -13,7 +13,7 @@ from scipy.special import softmax
 import gc
 
 from explainers import *
-from utils import arg_parse, load_file, load_data, get_path, get_remaining_df, remove_token, remove_label, replace_token_with_antonym, replace_label_with_antonym
+from utils import arg_parse, load_file, load_data, get_sentiment_file_path, get_remaining_df, remove_token, remove_label, replace_token_with_antonym, replace_label_with_antonym
 from accelerate.utils import set_seed
 import requests
 
@@ -52,26 +52,6 @@ class SentimentClassifier:
         aspect_index = aspect_map[aspect.lower()]
         return scores[aspect_index]
 
-
-def replace_token(explanation, label):
-    # Extract tokens, positions, and scores
-    tokens_scores = [(key.rsplit('_', 1)[0], int(key.rsplit('_', 1)[1]), value) for key, value in explanation.items()]
-    
-    # Find the token with the highest score
-    highest_token, highest_position, _ = max(tokens_scores, key=lambda x: x[2])
-    # random_token = random.choice(VOCAB)
-    sorted_tokens = sorted(tokens_scores, key=lambda x: x[1])
-    sentence_highest = " ".join(
-        token for token, token_position, _ in sorted_tokens
-        if not (token == highest_token and token_position == highest_position)
-    )
-    sentence_label = " ".join(
-        token for token, _, _ in sorted_tokens
-        if token != label
-    )
-    return sentence_highest, sentence_label, highest_token, label
-
-
 def sentiment_probability(classifier, sentence, sentence_highest, sentence_label, aspect):
     p0 = classifier.get_aspect_score(sentence, aspect)
     p_highest = classifier.get_aspect_score(sentence_highest, aspect)
@@ -79,7 +59,7 @@ def sentiment_probability(classifier, sentence, sentence_highest, sentence_label
     return p0, p_highest, p_label
 
 
-def eval_classifier(args, save=True, replace=None):
+def eval_classifier(args, save=True):
     
     if args.seed is not None:
         set_seed(args.seed)
@@ -95,10 +75,9 @@ def eval_classifier(args, save=True, replace=None):
     df_explanation = pd.merge(df_explanation, labels[['id', 'label', 'aspect']], on='id', how='left')
     print("Lenght explanations with label: ", len(df_explanation))
     
-    fname = "classification-"+replace if replace else "classification"
-    classification_path = get_path(args, folder_name=fname)
-    file_exists = os.path.isfile(classification_path)  # Check if file exists
-    df = get_remaining_df(df_explanation, classification_path)
+    sentiment_path = get_sentiment_file_path(args)
+    file_exists = os.path.isfile(sentiment_path)  # Check if file exists
+    df = get_remaining_df(df_explanation, sentiment_path)
     print("df: ", df.head())
     
     for _, row in df.iterrows():
@@ -108,12 +87,9 @@ def eval_classifier(args, save=True, replace=None):
         if contains_nan:
             continue
         sentence, label, aspect = row["input"], row["label"], row["aspect"]
-        if replace == "antonym":
-            sentence_highest, highest_token = replace_token_with_antonym(explanation)
-            sentence_label = replace_label_with_antonym(sentence, label)
-        else:
-            sentence_highest, highest_token = remove_token(explanation)
-            sentence_label = remove_label(sentence, label)
+        
+        sentence_highest, highest_token = replace_token_with_antonym(explanation) if args.steer_replace == "antonym" else remove_token(explanation)
+        sentence_label = replace_label_with_antonym(sentence, label) if args.steer_replace == "antonym" else remove_label(sentence, label)
         try:
             entry["p0"], entry["p_highest"], entry["p_label"] = sentiment_probability(classifier, sentence, sentence_highest, sentence_label, aspect)
         except ValueError as e:
@@ -126,10 +102,10 @@ def eval_classifier(args, save=True, replace=None):
         
         if save:
             # Append the single row to the CSV (write header only for the first instance)
-            row_df.to_csv(classification_path, mode="a", header=not file_exists, index=False)
+            row_df.to_csv(sentiment_path, mode="a", header=not file_exists, index=False)
             file_exists = True  # Ensure header is not written again
         else: 
-            print(f"classification score at id {row['id']}: ", row_df)
+            print(f"sentiment score at id {row['id']}: ", row_df)
         # Clear cache to free memory
         del row, entry, row_df, explanation, label, aspect, sentence_highest, sentence_label, highest_token
         gc.collect()
@@ -140,5 +116,4 @@ if __name__=="__main__":
     parser, args = arg_parse()
     print("args do sample: ", args.do_sample)
     eval_classifier(args)
-    # eval_classifier(args, replace="antonym")
 

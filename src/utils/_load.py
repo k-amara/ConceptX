@@ -12,6 +12,16 @@ def get_path(args, folder_name):
     filename += f"{args.dataset}_{args.model_name}_{args.explainer}_{args.seed}.{args.file_type}"
     return os.path.join(save_dir, filename)
 
+def get_sentiment_file_path(args):
+    save_dir = os.path.join(args.result_save_dir, f'sentiment/{args.model_name}/seed_{args.seed}/{args.explainer}')
+    os.makedirs(save_dir, exist_ok=True)
+    filename = f"sentiment_"
+    filename += f"batch_{args.num_batch}_" if args.num_batch is not None else ""
+    filename += f"{args.dataset}_{args.model_name}_{args.explainer}_"
+    filename += f"antonym_" if args.steer_replace == "antonym" else ""
+    filename += f"{args.seed}.csv"
+    return os.path.join(save_dir, filename)
+
 def get_answers_file_path(args):
     save_dir = os.path.join(args.result_save_dir, f'answers/{args.model_name}/seed_{args.seed}/{args.defender}')
     os.makedirs(save_dir, exist_ok=True)

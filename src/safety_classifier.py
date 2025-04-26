@@ -28,6 +28,7 @@ class LLaMAGuard3:
             return "unknown"
 
 class MDJudge:
+    "Requires Transformers Version 4.41.2"
     def __init__(self, model_name="OpenSafetyLab/MD-Judge-v0_2-internlm2_7b"):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
         self.model = AutoModelForCausalLM.from_pretrained(model_name, attn_implementation="sdpa", torch_dtype=torch.float16, trust_remote_code=True).to('cuda')

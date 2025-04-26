@@ -138,6 +138,7 @@ def eval_classifier(args, save=True, replace=None):
 
 if __name__=="__main__":
     parser, args = arg_parse()
-    # eval_classifier(args)
-    eval_classifier(args, replace="antonym")
+    print("args do sample: ", args.do_sample)
+    eval_classifier(args)
+    # eval_classifier(args, replace="antonym")
 

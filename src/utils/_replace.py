@@ -106,10 +106,21 @@ def get_multiple_completions(prompt, model="azure/gpt-4o-mini", num_sequences=3,
 
 def get_antonym_conceptnet(word):
     url = f"https://api.conceptnet.io/query?rel=/r/Antonym&start=/c/en/{word.lower()}&limit=10"
-    response = requests.get(url).json()
+    response = requests.get(url)
+    
+    # Check if the response is OK
+    if response.status_code != 200:
+        print(f"Error querying ConceptNet for word '{word}': {response.status_code}")
+        return None
+
+    try:
+        data = response.json()
+    except ValueError:
+        print(f"Invalid JSON response from ConceptNet for word '{word}'")
+        return None
     
     antonyms = []
-    for edge in response.get("edges", []):
+    for edge in data.get("edges", []):
         end = edge["end"]
         if end["@id"].startswith("/c/en/"):
             antonym = end["@id"].split("/c/en/")[-1]
@@ -118,7 +129,7 @@ def get_antonym_conceptnet(word):
         return antonyms[0]
     else:
         return None
-    
+
     
     
 def remove_token(explanation):

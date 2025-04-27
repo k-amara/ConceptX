@@ -13,7 +13,7 @@ def get_path(args, folder_name):
     return os.path.join(save_dir, filename)
 
 def get_sentiment_file_path(args):
-    save_dir = os.path.join(args.result_save_dir, f'sentiment/{args.model_name}/seed_{args.seed}/{args.explainer}')
+    save_dir = os.path.join(args.result_save_dir, f'sentiment/{args.model_name}/{args.dataset}/{args.explainer}/seed_{args.seed}')
     os.makedirs(save_dir, exist_ok=True)
     filename = f"sentiment_"
     filename += f"batch_{args.num_batch}_" if args.num_batch is not None else ""
@@ -145,32 +145,42 @@ def save_dataframe(data, args, folder_name):
 
 
 
-def get_remaining_df(df, path):
+
+def get_remaining_df(df_full, path):
     """
-    Checks if the CSV exists and returns the dataframe with remaining instructions.
+    Resumes from the row after the row with the last processed ID.
     
     Args:
-        df (pd.DataFrame): Original dataframe with all instructions.
-        path (str): Path to the saved CSV.
+        df_full (pd.DataFrame): Full dataframe with all instructions (must have an "id" column).
+        path (str): Path to the saved processed CSV.
 
     Returns:
-        pd.DataFrame: Filtered dataframe with remaining instructions to process.
+        pd.DataFrame: Remaining dataframe to process.
     """
     if os.path.isfile(path):
         existing_df = pd.read_csv(path)
-        print("existing_df: ", existing_df)
+        print(f"Loaded existing processed data with {len(existing_df)} rows.")
+
         if not existing_df.empty:
             last_id = existing_df["id"].drop_duplicates().iloc[-1]
-            print("last_id: ", last_id)
         else:
-            last_id = -1  # If empty, start from beginning
+            last_id = None
     else:
-        last_id = -1  # If no file exists, start from the beginning
+        last_id = None
 
-    print(f"Resuming from ID: {last_id + 1}")
-    
-    # Return the remaining dataframe
-    return df[df["id"] > last_id]
+    if last_id is not None:
+        # Find the index of the row with the last processed id
+        match_idx = df_full.index[df_full["id"] == last_id]
+        if len(match_idx) == 0:
+            raise ValueError(f"Last processed id {last_id} not found in full dataframe.")
+        start_idx = match_idx[0] + 1  # Resume from the next index
+    else:
+        start_idx = 0  # Start from beginning
+
+    print(f"Resuming from last index: {start_idx-1} and last id: {last_id}")
+
+    # Return the remaining dataframe starting from the next index
+    return df_full.iloc[start_idx:]
 
 
 def extract_args_from_filename(file):

@@ -157,6 +157,7 @@ def get_remaining_df(df_full, path):
     Returns:
         pd.DataFrame: Remaining dataframe to process.
     """
+    df_full = df_full.reset_index(drop=True)
     if os.path.isfile(path):
         existing_df = pd.read_csv(path)
         print(f"Loaded existing processed data with {len(existing_df)} rows.")

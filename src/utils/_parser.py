@@ -147,6 +147,12 @@ def arg_parse():
         type=str,
         help="Vectorizer type selected in the list of explainer classes (huggingface, openai, tfidf)",
     )
+    parser.add_argument(
+        "--embedding_model",
+        default="all-MiniLM-L6-v2",
+        type=str,
+        help="(Only for vectorizer='huggingface') SBERT model name (e.g. 'all-mpnet-base-v2', 'all-MiniLM-L6-v2').",
+    )
     
     parser.add_argument(
         "--baseline",
@@ -189,12 +195,21 @@ def arg_parse():
     
     args, unknown = parser.parse_known_args()
 
-    # Apply logic if --no_sample is passed (i.e., do_sample is False)
-    if args.do_sample is False:
-        args.result_save_dir += "-no-sample"
+    if not args.do_sample:
         args.temperature = 0.0
         args.top_k = 0
         args.top_p = 1.0
+    else:
+        args.result_save_dir += '-sample'
+
+    # Append vectorizer-specific info to result_save_dir
+    if args.vectorizer == "huggingface":
+        if args.embedding_model == "all-mpnet-base-v2":
+            args.result_save_dir += '-sbert'
+        elif args.embedding_model in ["", "all-MiniLM-L6-v2"]:
+            args.result_save_dir += '-minisbert'
+        else:
+            args.result_save_dir += f'-{args.embedding_model.replace("/", "-")}'
         
     return parser, args
 

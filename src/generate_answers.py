@@ -62,7 +62,7 @@ def generate_answers(args, save=True):
             row_df.to_csv(answers_file, mode="a", header=not file_exists, index=False)
             file_exists = True
         else:
-            print(f"Score for id {result['id']}: ", row_df)
+            print(f"Score for id {entry['id']}: ", row_df)
 
         del row_df, entry, row
         gc.collect()

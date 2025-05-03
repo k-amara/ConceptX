@@ -29,6 +29,7 @@ class TextVectorizer:
         """
         raise NotImplementedError
 
+#"sentence-transformers/all-mpnet-base-v2"
 class HuggingFaceEmbeddings(TextVectorizer):
     def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2", device: str = "cpu"):
         """
@@ -39,6 +40,7 @@ class HuggingFaceEmbeddings(TextVectorizer):
             device: Device to run model on ('cpu' or 'cuda', etc.)
         """
         self.model_name = model_name
+        print("Embedding Model: ", model_name)
         self.device = device
         self.model = None
         self._initialize_model()

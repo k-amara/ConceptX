@@ -78,7 +78,10 @@ def eval_faithfulness(args, save=True):
     rate_limit = True if args.model_name.startswith("gpt4") else False
     llm = LLMAPI(args, rate_limit_enabled=rate_limit) if api_required else LLMPipeline(args)
     
-    vectorizer = load_vectorizer(args.vectorizer)
+    vectorizer_kwargs = {}
+    if args.vectorizer == "huggingface":
+        vectorizer_kwargs["embedding_model"] = args.embedding_model
+    vectorizer = load_vectorizer(args.vectorizer, **vectorizer_kwargs)
     
     fname = "faithfulness"
     df_explanation = load_file(args, folder_name="explanations")

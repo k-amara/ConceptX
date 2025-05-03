@@ -58,9 +58,6 @@ def test_explainer(args):
     if args.seed is not None:
         set_seed(args.seed)
         
-    if not args.do_sample:
-        args.result_save_dir += '-no-sample'
-        
     api_required = True if args.model_name in ["gpt4o-mini", "gpt4o", "o1", "deepseek"] else False 
     rate_limit = True if args.model_name.startswith("gpt4") else False
     llm = LLMAPI(args, rate_limit_enabled=rate_limit) if api_required else LLMPipeline(args)
@@ -69,9 +66,12 @@ def test_explainer(args):
     print(df.head())
     inputs = df['input'].tolist()[:2]
     
+    vectorizer_kwargs = {}
+    if args.vectorizer == "huggingface":
+        vectorizer_kwargs["embedding_model"] = args.embedding_model
+    vectorizer = load_vectorizer(args.vectorizer, **vectorizer_kwargs)
     
-    vectorizer = load_vectorizer(args.vectorizer)
-    
+    print("result save dir: ", args.result_save_dir)
     # Choose appropriate explainer based on specified explainer
     kwargs = {}
     if args.explainer == "random":
@@ -116,6 +116,6 @@ def test_explainer(args):
 
 if __name__ == "__main__":
     parser, args = arg_parse()
-    test_model(args)
-    #test_explainer(args)
+    #test_model(args)
+    test_explainer(args)
     

@@ -55,7 +55,7 @@ def load_vectorizer(vectorizer_name: str, **kwargs) -> TextVectorizer:
         TextVectorizer: An instance of the chosen vectorizer.
     """
     if vectorizer_name == "huggingface":
-        return HuggingFaceEmbeddings(model_name=kwargs.get("model_name", "sentence-transformers/all-MiniLM-L6-v2"),
+        return HuggingFaceEmbeddings(model_name = "sentence-transformers/" + kwargs.get("embedding_model", "all-MiniLM-L6-v2"),
                                      device=kwargs.get("device", "cpu"))
     elif vectorizer_name == "openai":
         if "api_key" not in kwargs:

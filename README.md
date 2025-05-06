@@ -1,11 +1,17 @@
 <p align="center">
-    <img src = "FigMethod2.svg" alt="ConceptX Methodology"/>
+    <img src = "FigMethod2.pdf" alt="ConceptX Methodology"/>
   </p>
   
   
   # ConceptX: Concept-Level Explainability for Auditing and Steering LLM Responses
   
-  This is the code to implement ConceptX method
+  This is the code to implement ConceptX method, a model-agnostic, concept-level attribution-based explainability method that overcomes these limitations. 
+  Built on a coalition-based Shapley framework, ConceptX filters for meaningful content words, assigns
+  them importance based on semantic similarity, and maintains contextual integrity
+  through in-place replacement strategies. It also supports aspect-specific explanation
+  objectives. ConceptX enables both auditing, e.g., uncovering sources of bias, and
+  steering, e.g., modifying prompts to shift sentiment or reduce harmfulness, without
+  retraining. 
   (see [papers](#citations) for details and citations).
   
   ## Getting Started
@@ -22,25 +28,33 @@
   ```
   
   ### Datasets
+ 
+  - Alpaca dataset: https://huggingface.co/datasets/tatsu-lab/alpaca
+  - SST-2 dataset available at \url{https://huggingface.co/datasets/stanfordnlp/sst2}
+  - Sp1786-Sentiment:  https://huggingface.590co/datasets/Sp1786/multiclass-sentiment-analysis-dataset.
+
   
-  Download the datasets from the following links: https://figshare.com/ndownloader/articles/25202657/versions/1
-  
-  If you download and use these datasets in your research, please cite the following paper:
-  
-  ```
-  Amara, Kenza (2025). SyntaxShap datasets. figshare. Dataset. https://doi.org/10.6084/m9.figshare.25202657.v1
-  ```
-  
-  ### Pre-trained models
+  ### Pre-trained Large Language Models
   
   The pre-trained language models were extracted from the Hugging Face model hub.
   - MistralAI 7B: https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2
   - Gemma-3-3B:
 
+  API Calls:
   - GPT-4o mini: 
   
   
-  
+  ### Embedding models
+
+  Library: SBERT.net, https://www.sbert.net/docs/sentence_transformer/pretrained_
+models.html
+
+  ### Classifiers
+
+  - Sentiment classifier: RoBERTa-base model fine-tuned on the TweetEval sentiment benchmark: \url{https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment-latest}
+  - Safety classifier: MD-Judge-v0_2-internlm2_7b generates a label safe/unsafe as well as a safety score ranging from 1 (completely harmless) to 5 (extremely harmful): \url{https://huggingface.co/OpenSafetyLab/MD-Judge-v0_2-internlm2_7b}
+  Note: MD-Judge-v0_2-internlm2_7b requires Transformers version: 4.41.2
+
   ## Usage
   
   To generate explanations by explainer, you can use the following commands:

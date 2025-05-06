@@ -1,97 +1,161 @@
 <p align="center">
-    <img src = "FigMethod2.pdf" alt="ConceptX Methodology"/>
+    <img src="FigMethod2.svg" alt="ConceptX Methodology"/>
   </p>
-  
   
   # ConceptX: Concept-Level Explainability for Auditing and Steering LLM Responses
   
-  This is the code to implement ConceptX method, a model-agnostic, concept-level attribution-based explainability method that overcomes these limitations. 
-  Built on a coalition-based Shapley framework, ConceptX filters for meaningful content words, assigns
-  them importance based on semantic similarity, and maintains contextual integrity
-  through in-place replacement strategies. It also supports aspect-specific explanation
-  objectives. ConceptX enables both auditing, e.g., uncovering sources of bias, and
-  steering, e.g., modifying prompts to shift sentiment or reduce harmfulness, without
-  retraining. 
-  (see [papers](#citations) for details and citations).
+  **ConceptX** is a model-agnostic, concept-level attribution method that enables interpretable and controllable large language model (LLM) behavior. Built on a coalition-based Shapley framework, ConceptX:
+  
+  - Identifies semantically meaningful content words (concepts)
+  - Assigns importance scores based on semantic similarity
+  - Maintains contextual integrity via in-place replacement strategies
+  - Supports **aspect-specific explanations** (e.g., targeting sentiment, bias, references)
+  
+  ConceptX can be used both for **auditing** (e.g., detecting bias or sentiment sources) and **steering** (e.g., prompt interventions to reduce harmfulness), all **without retraining** the model.
+  
+  See the [papers](#citation) for more details.
+  
+  ---
   
   ## Getting Started
   
   ### Prerequisites
   
-  This code was tested with Python 3.8.5.
+  - Python 3.8.5
   
   ### Installation
   
-  Load the Python packages:
-  ```
+  Install the required packages:
+  
+  ```bash
   pip install -r requirements.txt
   ```
   
-  ### Datasets
- 
-  Publicly available datasets:
-  - Alpaca dataset: https://huggingface.co/datasets/tatsu-lab/alpaca
-  - SST-2 dataset: https://huggingface.co/datasets/stanfordnlp/sst2
-  - Sp1786-Sentiment dataset:  https://huggingface.590co/datasets/Sp1786/multiclass-sentiment-analysis-dataset.
+  ---
   
-  Our dataset:
-  - GenderBias dataset. You can download it from: [Anonymous]
+  ## Datasets
   
-  ### Pre-trained Large Language Models
+  ### Public datasets
+  - **[Alpaca](https://huggingface.co/datasets/tatsu-lab/alpaca)** – Instruction-following dataset
+  - **[SST-2](https://huggingface.co/datasets/stanfordnlp/sst2)** – Binary sentiment classification
+  - **[Sp1786-Sentiment](https://huggingface.co/datasets/Sp1786/multiclass-sentiment-analysis-dataset)** – Multiclass sentiment analysis
   
-  The pre-trained language models were extracted from the Hugging Face model hub.
-  - *MistralAI 7B*: https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2
-  - *Gemma-3-4B*: https://huggingface.co/google/gemma-3-4b-it
-  - *LLaMA-3.2-3B*: https://huggingface.co/meta-llama/Llama-3.2-3B
-
-  API Calls:
-  - GPT-4o mini: https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/
+  ### ConceptX additional dataset
+  - **GenderBias**: Download link TBD (anonymous for review)
   
+  ---
   
-  ### Embedding models
-
-  - *all-MiniLM-L6-v2*: based on the pretrained nreimers/MiniLM-L6-H384-uncased model, it produces compact embedding vectors of size d = 384.
-  - *all-mpnet-base-v2*: based on the pretrained microsoft/mpnet-base, it produces larger embedding vectors of size d = 768.
+  ## Pre-trained LLMs
   
-  Both embedding models are taken from the library: SBERT.net, https://www.sbert.net/docs/sentence_transformer/pretrained_
-models.html
-
-  ### Classifiers
-
-  - *Sentiment classifier*: RoBERTa-base model fine-tuned on the TweetEval sentiment benchmark: \url{https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment-latest}
-  - *Safety classifier*: MD-Judge-v0_2-internlm2_7b generates a label safe/unsafe as well as a safety score ranging from 1 (completely harmless) to 5 (extremely harmful): \url{https://huggingface.co/OpenSafetyLab/MD-Judge-v0_2-internlm2_7b}
+  All models are sourced from [HuggingFace](https://huggingface.co/):
   
+  - [**MistralAI 7B**](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2)
+  - [**Gemma-3-4B**](https://huggingface.co/google/gemma-3-4b-it)
+  - [**LLaMA-3.2-3B**](https://huggingface.co/meta-llama/Llama-3.2-3B)
   
-  Note: MD-Judge-v0_2-internlm2_7b requires Transformers version: 4.41.2
-
+  Also supported via API:
+  - [**GPT-4o mini**](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence)
+  
+  ---
+  
+  ## Embedding Models
+  
+  From [SBERT](https://www.sbert.net/docs/sentence_transformer/pretrained_models.html):
+  
+  - `all-MiniLM-L6-v2` — Compact, 384-dim embeddings
+  - `all-mpnet-base-v2` — Larger, 768-dim embeddings
+  
+  ---
+  
+  ## Classifiers
+  
+  - **Sentiment Classifier**  
+    RoBERTa-base, fine-tuned on TweetEval  
+    [cardiffnlp/twitter-roberta-base-sentiment-latest](https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment-latest)
+  
+  - **Safety Classifier**  
+    `MD-Judge-v0_2-internlm2_7b`  
+    Labels: `safe` / `unsafe`, plus a 1–5 safety score  
+    [OpenSafetyLab/MD-Judge-v0_2-internlm2_7b](https://huggingface.co/OpenSafetyLab/MD-Judge-v0_2-internlm2_7b)  
+    ⚠️ Requires `transformers==4.41.2`
+  
+  ---
+  
   ## Usage
   
-  To generate explanations by explainer, you can use the following commands:
+  Generate explanations using:
   
   ```bash
-  python src/explain.py --dataset [dataset] --model_name [model_name] --explainer [explainer] --seed [seed]
+  python src/explain.py --dataset [dataset] --model_name [model] --explainer [method] --seed [seed]
   ```
   
-  The following parameters are available:
-  - dataset: the name of the dataset to use "negation", "generics", "rocstories"
-  - model_name: the name of the decoder language model to use "gpt2", "mistral"
-  - explainer: the name of the explainability method to use "lime", "shap", "partition", "syntax", "syntax-w"
-  - seed: the random seed to use for reproducibility (e.g. 0)
+  ### Parameters:
+  - `dataset`: One of `alpaca`, `sst2`, `genderbias`
+  - `model_name`: Decoder LLM, e.g. `gpt2`, `mistral`
+  - `explainer`: e.g. `random`, `tokenshap`, `conceptx-B-r`, `conceptx-B-n`, `conceptx-A-r`
+  - `seed`: Random seed for reproducibility (e.g. `0`)
   
+  ---
+  
+  ## ConceptX Naming Convention
+  
+  If using ConceptX, `args.explainer` should follow the format:  
+  `conceptx-<T>-<R>` where:
+  - `<T>` is one of:
+    - `A` → aspect-based explanation
+    - `R` → reference-based
+    - `B` → base (general explanation)
+  - `<R>` is one of:
+    - `r` → remove
+    - `n` → neutral
+    - `a` → antonym
+  
+  Example: `conceptx-A-n` means *aspect-based explanation using neutral replacements*.
+  
+  **Code snippet to parse and validate:**
+  
+  ```python
+  if args.explainer.startswith("conceptx"):
+      parts = args.explainer.split("-")
+      assert parts[1] in ("A", "R", "B"), f"Invalid code in parts[1]: {parts[1]}"
+      assert parts[2] in ("r", "n", "a"), f"Invalid code in parts[2]: {parts[2]}"
+  
+      args.target = (
+          "aspect" if parts[1] == "A" else
+          "reference" if parts[1] == "R" else
+          "base"
+      )
+  
+      args.coalition_replace = (
+          "neutral" if parts[2] == "n" else
+          "antonym" if parts[2] == "a" else
+          "remove"
+      )
+  ```
+  
+  ---
   
   ## Citation
-  If you are using ConceptX code, please cite the following paper:
-  ```
+  
+  If you use ConceptX in your research, please cite:
+  
+  ```bibtex
   @article{Anonymous,
-    title={Concept-Level Explainability for Auditing and Steering LLM Responses},
-    author={Anonymous},
-    journal={Anonymous},
-    year={2025}
+    title = {Concept-Level Explainability for Auditing and Steering LLM Responses},
+    author = {Anonymous},
+    journal = {Anonymous},
+    year = {2025}
   }
   ```
-  For any questions about this code please file an github [issue](https://github.com/).
   
+  ---
   
   ## References
   
-  1. Goldshmidt, Roni, and Miriam Horovicz. "TokenSHAP: Interpreting Large Language Models with Monte Carlo Shapley Value Estimation." arXiv preprint arXiv:2407.10114 (2024).
+  1. Goldshmidt, Roni, and Miriam Horovicz. *"TokenSHAP: Interpreting Large Language Models with Monte Carlo Shapley Value Estimation."* arXiv preprint arXiv:2407.10114 (2024).
+  
+  ---
+  
+  ## Questions or Issues?
+  
+  Please [open a GitHub issue](https://github.com/) for support or feedback.

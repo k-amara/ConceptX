@@ -29,30 +29,39 @@
   
   ### Datasets
  
+  Publicly available datasets:
   - Alpaca dataset: https://huggingface.co/datasets/tatsu-lab/alpaca
-  - SST-2 dataset available at \url{https://huggingface.co/datasets/stanfordnlp/sst2}
-  - Sp1786-Sentiment:  https://huggingface.590co/datasets/Sp1786/multiclass-sentiment-analysis-dataset.
-
+  - SST-2 dataset: https://huggingface.co/datasets/stanfordnlp/sst2
+  - Sp1786-Sentiment dataset:  https://huggingface.590co/datasets/Sp1786/multiclass-sentiment-analysis-dataset.
+  
+  Our dataset:
+  - GenderBias dataset. You can download it from: [Anonymous]
   
   ### Pre-trained Large Language Models
   
   The pre-trained language models were extracted from the Hugging Face model hub.
-  - MistralAI 7B: https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2
-  - Gemma-3-3B:
+  - *MistralAI 7B*: https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2
+  - *Gemma-3-4B*: https://huggingface.co/google/gemma-3-4b-it
+  - *LLaMA-3.2-3B*: https://huggingface.co/meta-llama/Llama-3.2-3B
 
   API Calls:
-  - GPT-4o mini: 
+  - GPT-4o mini: https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/
   
   
   ### Embedding models
 
-  Library: SBERT.net, https://www.sbert.net/docs/sentence_transformer/pretrained_
+  - *all-MiniLM-L6-v2*: based on the pretrained nreimers/MiniLM-L6-H384-uncased model, it produces compact embedding vectors of size d = 384.
+  - *all-mpnet-base-v2*: based on the pretrained microsoft/mpnet-base, it produces larger embedding vectors of size d = 768.
+  
+  Both embedding models are taken from the library: SBERT.net, https://www.sbert.net/docs/sentence_transformer/pretrained_
 models.html
 
   ### Classifiers
 
-  - Sentiment classifier: RoBERTa-base model fine-tuned on the TweetEval sentiment benchmark: \url{https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment-latest}
-  - Safety classifier: MD-Judge-v0_2-internlm2_7b generates a label safe/unsafe as well as a safety score ranging from 1 (completely harmless) to 5 (extremely harmful): \url{https://huggingface.co/OpenSafetyLab/MD-Judge-v0_2-internlm2_7b}
+  - *Sentiment classifier*: RoBERTa-base model fine-tuned on the TweetEval sentiment benchmark: \url{https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment-latest}
+  - *Safety classifier*: MD-Judge-v0_2-internlm2_7b generates a label safe/unsafe as well as a safety score ranging from 1 (completely harmless) to 5 (extremely harmful): \url{https://huggingface.co/OpenSafetyLab/MD-Judge-v0_2-internlm2_7b}
+  
+  
   Note: MD-Judge-v0_2-internlm2_7b requires Transformers version: 4.41.2
 
   ## Usage
@@ -85,8 +94,4 @@ models.html
   
   ## References
   
-  1. *LIME:* Ribeiro, Marco Tulio, Sameer Singh, and Carlos Guestrin. "Why should i trust you?: Explaining the predictions of any classifier." Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining. ACM, 2016.
-  
-  2. *Shapley sampling values:* Strumbelj, Erik, and Igor Kononenko. "Explaining prediction models and individual predictions with feature contributions." Knowledge and information systems 41.3 (2014): 647-665.
-  
-  3. *Partition* Chen, Hanjie, Guangtao Zheng, and Yangfeng Ji. "Generating hierarchical explanations on text classification via feature interaction detection." arXiv preprint arXiv:2004.02015 (2020).
+  1. Goldshmidt, Roni, and Miriam Horovicz. "TokenSHAP: Interpreting Large Language Models with Monte Carlo Shapley Value Estimation." arXiv preprint arXiv:2407.10114 (2024).

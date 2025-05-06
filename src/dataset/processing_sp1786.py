@@ -67,7 +67,7 @@ if __name__=="__main__":
     df_final = df_filtered[['id', 'text', 'sentiment']][:1010]
     
     fieldnames = ["id", "input", "aspect", "label"]
-    filename = "data/sentiment_classification.csv"
+    filename = "data/sp1786_classification.csv"
     
     file_exists = os.path.isfile(filename)  # Check if file exists
     df = get_remaining_df(df_final, filename)

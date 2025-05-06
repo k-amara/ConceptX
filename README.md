@@ -95,6 +95,11 @@ To compute faithfulness scores for the generated explanations:
 python src/faithfulness.py --dataset [dataset] --model_name [model] --explainer [method] --seed [seed]
 ```
 
+To compute accuracy scores for the generated explanations on genderbias:
+```bash
+python src/accuracy.py 
+```
+
 **Parameters:**
 - `dataset`: One of `alpaca`, `sst2`, `genderbias`, `saladbench`
 - `model_name`: Decoder-only LLM, e.g., `gpt4o-mini`, `mistral-7b-it`, `gemma-3-4b`, `llama-3-3b`
@@ -112,7 +117,7 @@ python src/sentiment_classifier.py --dataset [dataset] --model_name [model] --ex
 ```
 
 **Parameters:**
-- `dataset`: One of `sst2`, `sp768`
+- `dataset`: One of `sst2`, `sp1786`
 - `explainer`: e.g., `random`, `tokenshap`, `conceptx-B-r`, `conceptx-B-n`, `conceptx-B-a`, `conceptx-A-r`
 - `steer_replace`: One of `neutral`, `antonym`
 
@@ -122,7 +127,7 @@ python src/sentiment_classifier.py --dataset [dataset] --model_name [model] --ex
 
 First, generate LLM responses:
 ```bash
-python src/answers.py --dataset [dataset] --model_name [model] --explainer [method] --steer_replace [steer_replace] --seed [seed]
+python src/generate_answers.py --dataset [dataset] --model_name [model] --explainer [method] --steer_replace [steer_replace] --seed [seed]
 ```
 
 Then, evaluate safety of the generated responses:

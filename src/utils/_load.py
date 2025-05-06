@@ -92,8 +92,8 @@ def load_data(args):
     elif args.dataset == "sst2":
         df_final = pd.read_csv(os.path.join(args.data_save_dir, "sst2_classification.csv"))
         df_final = df_final.sample(frac=1, random_state=args.seed).reset_index(drop=True)
-    elif args.dataset == "sentiment":
-        df_final = pd.read_csv(os.path.join(args.data_save_dir, "sentiment_classification.csv"))[:1010]
+    elif args.dataset == "sp1786":
+        df_final = pd.read_csv(os.path.join(args.data_save_dir, "sp1786_classification.csv"))[:1010]
     elif args.dataset == "genderbias":
         df_final = pd.read_csv(os.path.join(args.data_save_dir, "stereotypical_temp_0.8_responses.csv"))
     elif args.dataset == "genderbias2":

@@ -127,7 +127,7 @@ def arg_parse():
         "--dataset",
         default=None,
         type=str,
-        help="Dataset of intructions selected in the list of datasets (alpaca, genderbias, sentiment)",
+        help="Dataset of intructions selected in the list of datasets (alpaca, genderbias, sst2, sp1786, saladbench)",
     )
     
     

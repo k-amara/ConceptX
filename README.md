@@ -11,7 +11,7 @@
   - Maintains contextual integrity via in-place replacement strategies
   - Supports **aspect-specific explanations** (e.g., targeting sentiment, bias, references)
   
-  ConceptX can be used both for **auditing** (e.g., detecting bias or sentiment sources) and **steering** (e.g., prompt interventions to reduce harmfulness), all **without retraining** the model.
+  ConceptX can be used both for **auditing** (e.g., detecting bias) and **steering** (e.g., prompt interventions to shift sentence sentiment or reduce harmfulness), all **without retraining** the model.
   
   See the [papers](#citation) for more details.
   
@@ -39,7 +39,8 @@
   - **[Alpaca](https://huggingface.co/datasets/tatsu-lab/alpaca)** – Instruction-following dataset
   - **[SST-2](https://huggingface.co/datasets/stanfordnlp/sst2)** – Binary sentiment classification
   - **[Sp1786-Sentiment](https://huggingface.co/datasets/Sp1786/multiclass-sentiment-analysis-dataset)** – Multiclass sentiment analysis
-  
+  - **[Salad-Bench](https://huggingface.co/datasets/OpenSafetyLab/Salad-Data)** – Attack-enhanced dataset for LLMs
+
   ### ConceptX additional dataset
   - **GenderBias**: Download link TBD (anonymous for review)
   
@@ -47,13 +48,13 @@
   
   ## Pre-trained LLMs
   
-  All models are sourced from [HuggingFace](https://huggingface.co/):
+  Models sourced from [HuggingFace](https://huggingface.co/):
   
   - [**MistralAI 7B**](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2)
   - [**Gemma-3-4B**](https://huggingface.co/google/gemma-3-4b-it)
   - [**LLaMA-3.2-3B**](https://huggingface.co/meta-llama/Llama-3.2-3B)
   
-  Also supported via API:
+  Model supported via API:
   - [**GPT-4o mini**](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence)
   
   ---

@@ -18,7 +18,7 @@ def generate_answers(args, save=True):
     rate_limit = args.model_name.startswith("gpt4")
     llm = LLMAPI(args, rate_limit_enabled=rate_limit) if api_required else LLMPipeline(args)
 
-    if args.defender in ["conceptx", "tokenshap", "conceptshap", "random", "aconceptx", "conceptx-a"]:
+    if args.defender.startswith(("conceptx", "tokenshap", "random")):
         args.explainer = args.defender
         df_data = load_file(args, folder_name="explanations")
     else:
@@ -48,7 +48,7 @@ def generate_answers(args, save=True):
             entry["answer"] = llm.generate(transformed_prompt)
             del transformed_prompt
 
-        elif args.defender in ["random", "tokenshap", "conceptshap", "conceptx", "aconceptx", "conceptx-a"]:
+        elif args.defender.startswith(("conceptx", "tokenshap", "random")):
             explanation = eval(row["explanation"], {"np": np, "nan": np.nan})
             if any(np.isnan(v) for v in explanation.values()):
                 continue

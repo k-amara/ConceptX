@@ -14,17 +14,19 @@ from model import ContentPolicyViolationError
 
 
 
-class ConceptSHAP(Explainer):
+class ConceptX(Explainer):
     def __init__(self, 
                  llm, 
                  splitter: ConceptSplitter, 
                  vectorizer: Optional[TextVectorizer] = None,
                  debug: bool = False,
                  sampling_ratio: float = 0.0,
-                 replace: str = None):
+                 replace: str = "remove",
+                 target: str = "base"):
         super().__init__(llm, splitter, vectorizer, debug)
         self.sampling_ratio = sampling_ratio
         self.replace = replace
+        self.target = target
 
     def _generate_random_combinations(self, samples, k, exclude_combinations_set):
         n = len(samples)
@@ -203,7 +205,7 @@ class ConceptSHAP(Explainer):
         concept_combinations_results = self._get_result_per_concept_combination()
         df_per_concept_combination = self._get_df_per_concept_combination(concept_combinations_results, self.baseline_text)
         self.explanation = self._calculate_explanation(df_per_concept_combination)
-        print("ConceptSHAP values: ", self.explanation)
+        print("ConceptX values: ", self.explanation)
         if print_highlight_text:
             self.highlight_text_background()
 

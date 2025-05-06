@@ -141,5 +141,8 @@ figures/
 results-minisbert/
 results-sample-minisbert/
 results-sbert/
-
+src/test*
+notebooks/
+data/
+jobs.out
 *.sh

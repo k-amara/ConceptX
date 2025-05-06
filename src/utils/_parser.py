@@ -137,7 +137,21 @@ def arg_parse():
         "--explainer",
         default=None,
         type=str,
-        help="Explainer type selected in the list of explainer classes (random, tokenshap, conceptshap, conceptx)",
+        help="Explainer type selected in the list of explainer classes (random, tokenshap, ConceptX, conceptx)",
+    )
+    
+    parser.add_argument(
+        "--coalition_replace",
+        default="remove",
+        type=str,
+        help="What replacement strategy used by ConceptX (remove, neutral or antonym)",
+    )
+    
+    parser.add_argument(
+        "--target",
+        default="base",
+        type=str,
+        help="Explanation target for ConceptX (A: aspect, R: reference, B: base)",
     )
     
     
@@ -183,14 +197,14 @@ def arg_parse():
         "--defender",
         default="none",
         type=str,
-        help="defender type selected in the list of explainer classes (selfreminder, selfparaphrase, gpt4omini, random, tokenshap, conceptshap, conceptx)",
+        help="defender type selected in the list of explainer classes (selfreminder, selfparaphrase, gpt4omini, random, tokenshap, conceptx-B-r, conceptx-B-n, conceptx-B-a, conceptx-A-r, conceptx-R-r)",
     )
     
     parser.add_argument(
         "--steer_replace",
         default=None,
         type=str,
-        help="Whther to replace the removed token with antonym to steer the model response; None is only removing the token; Only valid if defender is a token-level xai method",
+        help="Whether to replace the removed token with antonym to steer the model response; None is only removing the token; Only valid if defender is a token-level xai method",
     )
     
     args, unknown = parser.parse_known_args()
@@ -210,6 +224,24 @@ def arg_parse():
             args.result_save_dir += '-minisbert'
         else:
             args.result_save_dir += f'-{args.embedding_model.replace("/", "-")}'
+            
+            
+    if args.explainer.startswith("conceptx"):
+        parts = args.explainer.split("-")
+        assert parts[1] in ("A", "R", "B"), f"Invalid code in parts[1]: {parts[1]}"
+        assert parts[2] in ("r", "n", "a"), f"Invalid code in parts[2]: {parts[2]}"
+
+        args.target = (
+            "aspect" if parts[1] == "A" else
+            "reference" if parts[1] == "R" else
+            "base"
+        )
+        
+        args.coalition_replace = (
+            "neutral" if parts[2] == "n" else
+            "antonym" if parts[2] == "a" else
+            "remove"
+        )
         
     return parser, args
 

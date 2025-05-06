@@ -41,23 +41,15 @@ def compute_explanations(args, save=True):
     elif args.explainer == "tokenshap":
         splitter = StringSplitter()
         explainer = TokenSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0)
-    elif args.explainer == "conceptshap":
+    elif args.explainer.startswith("conceptx"):
         splitter = ConceptSplitter()
-        explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace=None)
-    elif "conceptx" in args.explainer:
-        splitter = ConceptSplitter()
-        if args.explainer == "aconceptx":
-            explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace="antonym")
-        else:
-            explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace="neutral")
+        explainer = ConceptX(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace=args.coalition_replace)
         # Determine baseline if needed
         baseline_texts = None
-        if args.explainer.endswith("-r"):
+        if args.target == "reference":
             baseline_texts = df['reference'].tolist()
-        elif args.explainer.endswith("-a"):
+        elif args.target == "aspect":
             baseline_texts = df['aspect'].tolist()
-        print(baseline_texts)
-        # Add baseline to kwargs only if it's not None
         kwargs = {"baseline_texts": baseline_texts} if baseline_texts is not None else {}
     else:
         raise ("Unknown explainer type passed: %s!" % args.explainer)

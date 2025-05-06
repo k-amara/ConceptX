@@ -25,8 +25,8 @@ from ._tokenshap import (
     TokenSHAP
 )
 
-from ._conceptshap import (
-    ConceptSHAP
+from ._conceptx import (
+    ConceptX
 )
 
 from ._explain_utils import (
@@ -48,7 +48,7 @@ __all__ = [
     "StringSplitter",
     "TokenizerSplitter",
     "ConceptSplitter",
-    "ConceptSHAP",
+    "ConceptX",
     "get_text_before_last_underscore",
     "normalize_explanation"
 ]

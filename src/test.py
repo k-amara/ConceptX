@@ -15,9 +15,6 @@ def test_model(args):
     
     if args.seed is not None:
         set_seed(args.seed)
-        
-    if not args.do_sample:
-        args.result_save_dir += '-no-sample'
     
     api_required = True if args.model_name in ["gpt4o-mini", "gpt4o", "o1", "deepseek"] else False 
     rate_limit = True if args.model_name.startswith("gpt4") else False
@@ -86,23 +83,15 @@ def test_explainer(args):
     elif args.explainer == "tokenshap":
         splitter = StringSplitter()
         explainer = TokenSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0)
-    elif args.explainer == "conceptshap":
+    elif args.explainer.startswith("conceptx"):
         splitter = ConceptSplitter()
-        explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace=False)
-    elif args.explainer.endswith("conceptx"):
-        splitter = ConceptSplitter()
-        if args.explainer == "aconceptx":
-            explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace="antonym")
-        else:
-            explainer = ConceptSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace="neutral")
+        explainer = ConceptX(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace=args.coalition_replace)
         # Determine baseline if needed
         baseline_texts = None
-        if args.baseline == "reference":
-            baseline_texts = df['reference'].tolist()[:2]
-        elif args.baseline == "aspect":
-            baseline_texts = df['aspect'].tolist()[:2]
-        print(baseline_texts)
-        # Add baseline to kwargs only if it's not None
+        if args.target == "reference":
+            baseline_texts = df['reference'].tolist()
+        elif args.target == "aspect":
+            baseline_texts = df['aspect'].tolist()
         kwargs = {"baseline_texts": baseline_texts} if baseline_texts is not None else {}
     else:
         raise ("Unknown explainer type passed: %s!" % args.explainer)

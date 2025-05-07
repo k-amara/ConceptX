@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="FigMethod2.svg" alt="ConceptX Methodology"/>
+    <img src="fig_method.svg" alt="ConceptX Methodology"/>
   </p>
   
   # ConceptX: Concept-Level Explainability for Auditing and Steering LLM Responses
@@ -21,7 +21,7 @@
   
   ### Prerequisites
   
-  - Python 3.8.5
+  - Python 3.10.12
   
   ### Installation
   

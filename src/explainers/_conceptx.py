@@ -70,7 +70,7 @@ class ConceptX(Explainer):
         self._debug_print(f"Number of essential combinations (each missing one concept): {len(essential_combinations)}")
 
         # Compute the number of additional combinations (capped at 30)
-        num_additional_concepts = min(30, max(0, num_sampled_combinations - len(essential_combinations)))
+        num_additional_concepts = min(100, max(0, num_sampled_combinations - len(essential_combinations)))
         self._debug_print(f"Number of additional combinations to sample (capped at 30): {num_additional_concepts}")
 
         sampled_combinations = []
@@ -85,7 +85,8 @@ class ConceptX(Explainer):
         # Combine essential and additional combinations
         all_combinations_to_process = essential_combinations + sampled_combinations
         self._debug_print(f"Total combinations to process: {len(all_combinations_to_process)}")
-
+        num_coalitions = len(all_combinations_to_process)
+        
         prompt_responses = {}
         for idx, (combination, indexes) in enumerate(tqdm(all_combinations_to_process, desc="Processing combinations")):
             # change to produce 

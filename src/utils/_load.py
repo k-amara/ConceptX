@@ -98,6 +98,8 @@ def load_data(args):
         df_final = pd.read_csv(os.path.join(args.data_save_dir, "stereotypical_temp_0.8_responses.csv"))
     elif args.dataset == "genderbias2":
         df_final = pd.read_csv(os.path.join(args.data_save_dir, "stereotypical_temp_0.8_responses_v2.csv"))
+    elif args.dataset == "genderbias-person":
+        df_final = pd.read_csv(os.path.join(args.data_save_dir, "stereotypical_temp_0.8_responses_person.csv"))
     elif args.dataset == "saladbench":
         df_final = pd.read_csv(os.path.join(args.data_save_dir, "saladbench_labeled.csv"))
     else:

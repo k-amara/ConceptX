@@ -117,7 +117,7 @@ def get_explanations_accuracy(args):
                 # Extract arguments from filename
                 args_dict = extract_args_from_filename(file)
                 
-                if args_dict["dataset"]=="genderbias":
+                if args_dict["dataset"].startswith("genderbias"):
 
                     # Convert dictionary to argparse.Namespace
                     updated_args = merge_args(args, args_dict)

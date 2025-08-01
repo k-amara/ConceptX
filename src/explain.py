@@ -1,5 +1,6 @@
 from explainers import *
 import pickle as pkl
+import time
 import pandas as pd
 from model import LLMPipeline, LLMAPI, ContentPolicyViolationError
 from utils import arg_parse, load_data, load_vectorizer, get_path, get_remaining_df
@@ -55,42 +56,73 @@ def compute_explanations(args, save=True):
         raise ("Unknown explainer type passed: %s!" % args.explainer)
     
     explanations_path = get_path(args, folder_name="explanations")
+    time_path = get_path(args, folder_name="computation_time")
+
     file_exists = os.path.isfile(explanations_path)  # Check if file exists
     df = get_remaining_df(df, explanations_path)
+    
+    time_logs = []
+
     for i in range(len(df)):  # Process each input one by one
         input = df.iloc[i]["input"]
         if not isinstance(input, str):
             continue
         input_id = df.iloc[i]["id"]
+
         try:
+            start_time = time.time()
+
             response = llm.generate(input)
+            explanation_list = explainer([input], **kwargs)
+            if args.explainer.startswith("conceptx"):
+                concepts = splitter.extract_meaningful_concepts(input) 
+                print("Concepts: ", concepts)
+                num_features = len(concepts)
+            else:
+                num_features = len(splitter.split(input))
+
+            if not explanation_list:
+                continue  # Skip this iteration if explanation is empty
+
+            explanation = explanation_list[0]
+
+            row_df = pd.DataFrame([{
+                "id": input_id,
+                "input": input,
+                "response": response,
+                "explanation": explanation
+            }])
+
+            if save:
+                row_df.to_csv(explanations_path, mode="a", header=not file_exists, index=False)
+                file_exists = True
+            else:
+                print(f"Explanation id {input_id}: ", row_df)
+
+            # Update timing
+            elapsed_time = time.time() - start_time
+            input_length = len(input)
+
+            time_logs.append({
+                "id": input_id,
+                "input_length": input_length,
+                "num_features": num_features,
+                "time_seconds": elapsed_time
+            })
+
+
+            # Clear cache to free memory
+            del input, response, input_id, explanation, row_df
+            gc.collect()
+
         except ContentPolicyViolationError:
             continue  # Skip inputs that raise the error
-    
-        # Get explanation for the single input
-        explanation_list = explainer([input], **kwargs)
-        if not explanation_list:  # Check if explanation is an empty list
-            continue  # Skip this iteration and move to the next input -- probably becais
-        explanation = explanation_list[0]  
-
-        # Store in a DataFrame
-        row_df = pd.DataFrame([{
-            "id": input_id,
-            "input": input,
-            "response": response,
-            "explanation": explanation
-        }])
-
-        if save:
-            # Append the single row to the CSV (write header only for the first instance)
-            row_df.to_csv(explanations_path, mode="a", header=not file_exists, index=False)
-            file_exists = True  # Ensure header is not written again
-        else: 
-            print(f"Explanation id {input_id}: ", row_df)
-        # Clear cache to free memory
-        del input, response, input_id, explanation, row_df
-        gc.collect()
         
+    if time_logs:
+        os.makedirs(os.path.dirname(time_path), exist_ok=True)
+        time_df = pd.DataFrame(time_logs)
+        time_df.to_csv(time_path, index=False)
+
     return
     
 

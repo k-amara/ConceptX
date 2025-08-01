@@ -65,8 +65,8 @@ class TokenSHAP(Explainer):
 
         self._debug_print(f"Number of essential combinations (each missing one token): {len(essential_combinations)}")
 
-        num_additional_samples = min(30, max(0, num_sampled_combinations - len(essential_combinations)))
-        self._debug_print(f"Number of additional combinations to sample (capped at 30): {num_additional_samples}")
+        num_additional_samples = min(100, max(0, num_sampled_combinations - len(essential_combinations)))
+        self._debug_print(f"Number of additional combinations to sample (capped at 100): {num_additional_samples}")
 
         sampled_combinations = []
         if num_additional_samples > 0:
@@ -80,6 +80,7 @@ class TokenSHAP(Explainer):
         # Combine essential and additional combinations
         all_combinations_to_process = essential_combinations + sampled_combinations
         self._debug_print(f"Total combinations to process: {len(all_combinations_to_process)}")
+        # num_all_coalitions, num_sampled_combinations = len(all_combinations_to_process), len(sampled_combinations)
 
         prompt_responses = {}
         for idx, (combination, indexes) in enumerate(tqdm(all_combinations_to_process, desc="Processing combinations")):

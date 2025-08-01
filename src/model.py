@@ -616,7 +616,7 @@ def process_instructions(df, llm):
 def create_prompt(text, dataset, api_required):
     if dataset in ["sentiment", "sst2"]:
         prompt = f"""Determine the sentiment of the following sentence: {text}. Your response must be either "positive" or "negative"."""
-    elif dataset in ["alpaca", "genderbias", "genderbias2", "saladbench"]:
+    elif dataset in ["alpaca", "genderbias", "genderbias2", "genderbias-person", "saladbench"]:
         if api_required:
             prompt = f"""
                 Given the following instruction, provide an answer as direct advice. Do not use bullet points.

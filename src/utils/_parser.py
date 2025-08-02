@@ -141,10 +141,10 @@ def arg_parse():
     )
     
     parser.add_argument(
-        "--added_coalitions",
-        default=30,
-        type=int,
-        help="M the capped number of added coalitions",
+        "--sampling_ratio",
+        default=1.0,
+        type=float,
+        help="Sampling ratio of added coalitions (on top of the essential ones)",
     )
     
     parser.add_argument(

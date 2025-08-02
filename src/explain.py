@@ -41,10 +41,10 @@ def compute_explanations(args, save=True):
         explainer = FeatAblation(llm, splitter)
     elif args.explainer == "tokenshap":
         splitter = StringSplitter()
-        explainer = TokenSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0)
+        explainer = TokenSHAP(llm, splitter, vectorizer, debug=False, sampling_ratio=args.sampling_ratio)
     elif args.explainer.startswith("conceptx"):
         splitter = ConceptSplitter()
-        explainer = ConceptX(llm, splitter, vectorizer, debug=False, sampling_ratio=1.0, replace=args.coalition_replace)
+        explainer = ConceptX(llm, splitter, vectorizer, debug=False, sampling_ratio=args.sampling_ratio, replace=args.coalition_replace)
         # Determine baseline if needed
         baseline_texts = None
         if args.target == "reference":
@@ -56,12 +56,10 @@ def compute_explanations(args, save=True):
         raise ("Unknown explainer type passed: %s!" % args.explainer)
     
     explanations_path = get_path(args, folder_name="explanations")
-    time_path = get_path(args, folder_name="computation_time")
-
+    time_path = get_path(args, folder_name="time")
+    time_file_exists = os.path.isfile(time_path)
     file_exists = os.path.isfile(explanations_path)  # Check if file exists
     df = get_remaining_df(df, explanations_path)
-    
-    time_logs = []
 
     for i in range(len(df)):  # Process each input one by one
         input = df.iloc[i]["input"]
@@ -74,15 +72,15 @@ def compute_explanations(args, save=True):
 
             response = llm.generate(input)
             explanation_list = explainer([input], **kwargs)
+            if not explanation_list:
+                continue  # Skip this iteration if explanation is empty
+            
             if args.explainer.startswith("conceptx"):
                 concepts = splitter.extract_meaningful_concepts(input) 
                 print("Concepts: ", concepts)
                 num_features = len(concepts)
             else:
                 num_features = len(splitter.split(input))
-
-            if not explanation_list:
-                continue  # Skip this iteration if explanation is empty
 
             explanation = explanation_list[0]
 
@@ -93,35 +91,32 @@ def compute_explanations(args, save=True):
                 "explanation": explanation
             }])
 
-            if save:
-                row_df.to_csv(explanations_path, mode="a", header=not file_exists, index=False)
-                file_exists = True
-            else:
-                print(f"Explanation id {input_id}: ", row_df)
-
             # Update timing
             elapsed_time = time.time() - start_time
             input_length = len(input)
 
-            time_logs.append({
+            time_log = pd.DataFrame({
                 "id": input_id,
                 "input_length": input_length,
                 "num_features": num_features,
                 "time_seconds": elapsed_time
             })
+            
+            if save:
+                row_df.to_csv(explanations_path, mode="a", header=not file_exists, index=False)
+                time_log.to_csv(time_path, mode="a", header=not time_file_exists, index=False)
+                file_exists = True
+                time_file_exists = True
+            else:
+                print(f"Explanation id {input_id}: ", row_df)
 
 
             # Clear cache to free memory
-            del input, response, input_id, explanation, row_df
+            del input, response, input_id, explanation, row_df, time_log
             gc.collect()
 
         except ContentPolicyViolationError:
             continue  # Skip inputs that raise the error
-        
-    if time_logs:
-        os.makedirs(os.path.dirname(time_path), exist_ok=True)
-        time_df = pd.DataFrame(time_logs)
-        time_df.to_csv(time_path, index=False)
 
     return
     

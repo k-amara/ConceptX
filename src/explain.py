@@ -95,12 +95,12 @@ def compute_explanations(args, save=True):
             elapsed_time = time.time() - start_time
             input_length = len(input)
 
-            time_log = pd.DataFrame({
+            time_log = pd.DataFrame([{
                 "id": input_id,
                 "input_length": input_length,
                 "num_features": num_features,
                 "time_seconds": elapsed_time
-            })
+            }])
             
             if save:
                 row_df.to_csv(explanations_path, mode="a", header=not file_exists, index=False)

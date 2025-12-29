@@ -118,6 +118,7 @@ def load_data(args):
 def load_file(args, folder_name):
     # Load explanations from the specified path
     data_path = get_path(args, folder_name)
+    print("data_path: ", data_path)
     if args.file_type == "pkl":
         with open(data_path, "rb") as f:
             data = pkl.load(f)
